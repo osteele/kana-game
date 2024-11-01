@@ -1,24 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, Settings } from 'lucide-react';
-
-// Initial kana sets organized by difficulty level
-const KANA_SETS = {
-  1: [
-    { hiragana: 'あ', romaji: 'a' },
-    { hiragana: 'い', romaji: 'i' },
-    { hiragana: 'う', romaji: 'u' },
-    { hiragana: 'え', romaji: 'e' },
-    { hiragana: 'お', romaji: 'o' },
-  ],
-  2: [
-    { hiragana: 'か', romaji: 'ka' },
-    { hiragana: 'き', romaji: 'ki' },
-    { hiragana: 'く', romaji: 'ku' },
-    { hiragana: 'け', romaji: 'ke' },
-    { hiragana: 'こ', romaji: 'ko' },
-  ],
-  // Add more sets as needed
-};
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { KANA_SETS } from './data';
 
 const KanaGame = () => {
   // Game state
