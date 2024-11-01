@@ -1,6 +1,6 @@
 import { Clock, Settings } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { KANA_SETS } from './data';
+import { HIRAGANA_SETS, getKanaSets } from './hiragana';
 
 const KanaGame = () => {
   // Game state
@@ -24,13 +24,16 @@ const KanaGame = () => {
   const gameLoopRef = useRef(null);
   const animationFrameRef = useRef(null);
 
+  // Add writing system state
+  const [writingSystem, setWritingSystem] = useState('hiragana');
+
   // Initialize or reset game state
   const initializeGame = useCallback(() => {
-    const currentSet = KANA_SETS[level];
+    const currentSet = HIRAGANA_SETS[level];
     const kana = currentSet[Math.floor(Math.random() * currentSet.length)];
 
     // Generate choices including the correct answer and random others
-    const allKana = Object.values(KANA_SETS).flat();
+    const allKana = Object.values(HIRAGANA_SETS).flat();
     const wrongChoices = allKana
       .filter(k => k.romaji !== kana.romaji)
       .sort(() => Math.random() - 0.5)
@@ -48,13 +51,13 @@ const KanaGame = () => {
 
   // Start game timer
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && !isPaused) {
       timerRef.current = setInterval(() => {
         setElapsedTime(prev => prev + 1);
       }, 1000);
     }
     return () => clearInterval(timerRef.current);
-  }, [isPlaying]);
+  }, [isPlaying, isPaused]);
 
   // Save level to localStorage
   useEffect(() => {
@@ -177,6 +180,23 @@ const KanaGame = () => {
     setIsPaused(prev => !prev);
   };
 
+  // Update kana generation to use writing system
+  useEffect(() => {
+    const availableKana = getKanaSets(level, writingSystem);
+    setCurrentKana(availableKana[Math.floor(Math.random() * availableKana.length)]);
+  }, [level, writingSystem]);
+
+  // Show kana details state
+  const [showKanaDetails, setShowKanaDetails] = useState(false);
+
+  // Modify settings toggle to handle pausing
+  const toggleSettings = () => {
+    if (!showSettings && isPlaying && !isPaused) {
+      setIsPaused(true);
+    }
+    setShowSettings(!showSettings);
+  };
+
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-4 select-none">
       {/* Header */}
@@ -198,7 +218,7 @@ const KanaGame = () => {
             </button>
           )}
           <button
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={toggleSettings}
             className="p-2 rounded hover:bg-gray-100"
           >
             <Settings className="w-5 h-5" />
@@ -210,51 +230,64 @@ const KanaGame = () => {
       {showSettings && (
         <div className="mb-4 p-4 bg-gray-50 rounded">
           <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <label>Level:</label>
-              <select
-                value={level}
-                onChange={(e) => setLevel(Number(e.target.value))}
-                className="p-2 border rounded"
-              >
-                {Object.keys(KANA_SETS).map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    Level {lvl}
-                  </option>
-                ))}
-              </select>
+            {/* Level and writing system controls */}
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center space-x-4">
+                <label>Level:</label>
+                <select
+                  value={level}
+                  onChange={(e) => setLevel(Number(e.target.value))}
+                  className="p-2 border rounded"
+                >
+                  {Object.keys(HIRAGANA_SETS).map((lvl) => (
+                    <option key={lvl} value={lvl}>
+                      Level {lvl}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <label>Writing System:</label>
+                <select
+                  value={writingSystem}
+                  onChange={(e) => setWritingSystem(e.target.value)}
+                  className="p-2 border rounded"
+                >
+                  <option value="hiragana">Hiragana</option>
+                  <option value="katakana">Katakana</option>
+                  <option value="both">Both</option>
+                </select>
+              </div>
             </div>
 
-            {/* Kana Summary */}
+            {/* Character count summary */}
             <div className="text-sm">
-              <div className="font-medium mb-2">
-                Current Level Contains ({KANA_SETS[level].length} characters):
-              </div>
-              <div className="grid grid-cols-5 gap-2 md:grid-cols-8">
-                {KANA_SETS[level].map((kana, idx) => (
-                  <div key={idx} className="flex items-center space-x-2 bg-white p-2 rounded">
-                    <span className="text-lg">{kana.hiragana}</span>
-                    <span className="text-gray-600">({kana.romaji})</span>
-                  </div>
-                ))}
+              <div className="flex items-center space-x-2">
+                <span className="font-medium">
+                  Currently practicing {getKanaSets(level, writingSystem).length} characters
+                </span>
+                <button
+                  onClick={() => setShowKanaDetails(prev => !prev)}
+                  className="text-blue-500 hover:text-blue-600 text-sm underline"
+                >
+                  {showKanaDetails ? 'Hide details' : 'Show details'}
+                </button>
               </div>
 
-              <div className="mt-4 font-medium mb-2">
-                Cumulative Characters ({Object.entries(KANA_SETS)
-                  .filter(([lvl]) => Number(lvl) <= level)
-                  .reduce((acc, [_, set]) => acc + set.length, 0)} total):
-              </div>
-              <div className="grid grid-cols-5 gap-2 md:grid-cols-8">
-                {Object.entries(KANA_SETS)
-                  .filter(([lvl]) => Number(lvl) <= level)
-                  .flatMap(([_, set]) => set)
-                  .map((kana, idx) => (
-                    <div key={idx} className="flex items-center space-x-2 bg-white p-2 rounded">
-                      <span className="text-lg">{kana.hiragana}</span>
-                      <span className="text-gray-600">({kana.romaji})</span>
-                    </div>
-                  ))}
-              </div>
+              {/* Expandable character details */}
+              {showKanaDetails && (
+                <div className="mt-4 bg-white p-4 rounded border">
+                  <div className="grid grid-cols-5 gap-2 md:grid-cols-8">
+                    {getKanaSets(level, writingSystem).map((kana, idx) => (
+                      <div key={idx} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
+                        <span className="text-lg">{kana.hiragana}</span>
+                        <span className="text-gray-600 text-sm">({kana.romaji})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
