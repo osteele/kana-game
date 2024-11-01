@@ -45,9 +45,12 @@ npm run dev
 - **Desktop Controls:**
   - Use left and right arrow keys to move the falling kana
   - Space bar to start new character after feedback (optional)
+  - Tap the pause button to pause the game
 
 - **Mobile Controls:**
   - Tap the romaji columns at the bottom to guide the kana
+  - Tap a romaji column a second time to drop the kana to the bottom
+  - Tap the pause button to pause the game
 
 - **Gameplay:**
   - A hiragana character falls from the top of the screen

@@ -18,6 +18,7 @@ const KanaGame = () => {
   const [choices, setChoices] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const timerRef = useRef(null);
   const gameLoopRef = useRef(null);
@@ -62,14 +63,14 @@ const KanaGame = () => {
 
   // Handle animation frame updates for falling kana
   const animate = useCallback(() => {
-    if (isPlaying && !isWaitingForNext) {
+    if (isPlaying && !isWaitingForNext && !isPaused) {
       setPosition(prev => ({
         ...prev,
-        y: prev.y + (100 / (gameSpeed / 16.67)) // Smooth falling motion
+        y: prev.y + (100 / (gameSpeed / 16.67)) * (1 + prev.y / 100)
       }));
     }
     animationFrameRef.current = requestAnimationFrame(animate);
-  }, [isPlaying, gameSpeed, isWaitingForNext]);
+  }, [isPlaying, gameSpeed, isWaitingForNext, isPaused]);
 
   // Start animation loop
   useEffect(() => {
@@ -144,9 +145,19 @@ const KanaGame = () => {
 
   // Handle column click/tap
   const handleColumnClick = (index) => {
-    if (!isPlaying || isWaitingForNext) return;
-    const targetX = (index / 5) * 100 + 10;
-    setPosition(prev => ({ ...prev, x: targetX }));
+    if (!isPlaying || isWaitingForNext || isPaused) return;
+    const targetX = (index * 20) + 10; // 20% per column, centered at 10%
+
+    // Get current column based on x position
+    const currentColumn = Math.floor((position.x / 100) * 5);
+
+    if (currentColumn === index) {
+      // If clicking current column, drop to bottom
+      setPosition(prev => ({ ...prev, x: targetX, y: 80 }));
+    } else {
+      // If clicking different column, just move horizontally
+      setPosition(prev => ({ ...prev, x: targetX }));
+    }
   };
 
   const startGame = () => {
@@ -162,6 +173,10 @@ const KanaGame = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const togglePause = () => {
+    setIsPaused(prev => !prev);
+  };
+
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-4 select-none">
       {/* Header */}
@@ -173,30 +188,74 @@ const KanaGame = () => {
             ✓ {score.correct} | ✗ {score.wrong}
           </div>
         </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-2 rounded hover:bg-gray-100"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
+        <div className="flex items-center space-x-2">
+          {isPlaying && (
+            <button
+              onClick={togglePause}
+              className="p-2 rounded hover:bg-gray-100"
+            >
+              {isPaused ? '▶️' : '⏸️'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 rounded hover:bg-gray-100"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Settings Panel */}
       {showSettings && (
         <div className="mb-4 p-4 bg-gray-50 rounded">
-          <div className="flex items-center space-x-4">
-            <label>Level:</label>
-            <select
-              value={level}
-              onChange={(e) => setLevel(Number(e.target.value))}
-              className="p-2 border rounded"
-            >
-              {Object.keys(KANA_SETS).map((lvl) => (
-                <option key={lvl} value={lvl}>
-                  {lvl}
-                </option>
-              ))}
-            </select>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <label>Level:</label>
+              <select
+                value={level}
+                onChange={(e) => setLevel(Number(e.target.value))}
+                className="p-2 border rounded"
+              >
+                {Object.keys(KANA_SETS).map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    Level {lvl}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Kana Summary */}
+            <div className="text-sm">
+              <div className="font-medium mb-2">
+                Current Level Contains ({KANA_SETS[level].length} characters):
+              </div>
+              <div className="grid grid-cols-5 gap-2 md:grid-cols-8">
+                {KANA_SETS[level].map((kana, idx) => (
+                  <div key={idx} className="flex items-center space-x-2 bg-white p-2 rounded">
+                    <span className="text-lg">{kana.hiragana}</span>
+                    <span className="text-gray-600">({kana.romaji})</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 font-medium mb-2">
+                Cumulative Characters ({Object.entries(KANA_SETS)
+                  .filter(([lvl]) => Number(lvl) <= level)
+                  .reduce((acc, [_, set]) => acc + set.length, 0)} total):
+              </div>
+              <div className="grid grid-cols-5 gap-2 md:grid-cols-8">
+                {Object.entries(KANA_SETS)
+                  .filter(([lvl]) => Number(lvl) <= level)
+                  .flatMap(([_, set]) => set)
+                  .map((kana, idx) => (
+                    <div key={idx} className="flex items-center space-x-2 bg-white p-2 rounded">
+                      <span className="text-lg">{kana.hiragana}</span>
+                      <span className="text-gray-600">({kana.romaji})</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
