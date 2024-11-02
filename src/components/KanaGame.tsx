@@ -8,6 +8,7 @@ import { CharacterSet, Kana } from "../data/kana";
 import { getKanaSets } from "../data/katakana";
 import Settings from './Settings';
 
+const ROUND_COMPLETE_THRESHOLD = 10;
 
 // Add new interface for character stats
 interface KanaStats {
@@ -200,11 +201,40 @@ const KanaGame = () => {
     oscillator.stop(ctx.currentTime + 0.2);
   }, []);
 
-  // Modify the collision effect handler to include sound
+  const playRoundCompleteSound = useCallback(() => {
+    if (!audioContextRef.current) return;
+
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Celebratory ascending pattern
+    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime);     // C5
+    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+    oscillator.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.3); // C6
+
+    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.4);
+  }, []);
+
   useEffect(() => {
     if (position.y >= 80 && !isWaitingForNext && currentKana) {
       const column = Math.floor((position.x / 100) * 5);
       const isCorrect = choices[column].romaji === currentKana.romaji;
+
+      // Update score
+      const newScore = {
+        correct: score.correct + (isCorrect ? 1 : 0),
+        wrong: score.wrong + (isCorrect ? 0 : 1)
+      };
+      setScore(newScore);
 
       // Play appropriate sound
       if (isCorrect) {
@@ -213,7 +243,7 @@ const KanaGame = () => {
         playFailureSound();
       }
 
-      // Show particle effects based on result
+      // Show success/failure particles
       if (isCorrect) {
         tsParticles.load("successParticles", {
           preset: "confetti",
@@ -221,7 +251,41 @@ const KanaGame = () => {
             number: { value: 50 },
             life: { duration: 2 },
           },
+        }).then((container) => {
+          setTimeout(() => {
+            container?.destroy();
+          }, 2000);
         });
+
+        // Check for round completion
+        if (newScore.correct > 0 && newScore.correct % ROUND_COMPLETE_THRESHOLD === 0) {
+          playRoundCompleteSound(); // Play special sound for round completion
+          console.log("roundCompleteParticles");
+
+          tsParticles.load("roundCompleteParticles", {
+            preset: "fireworks",
+            particles: {
+              number: { value: 10 },
+              life: { duration: 3 },
+            },
+          }).then((container) => {
+              setTimeout(() => {
+                container?.destroy();
+              }, 5000);
+            });
+
+          setFeedback({
+            isCorrect: true,
+            message: `Round Complete! Score: ${newScore.correct}`
+          });
+
+          setTimeout(() => {
+            if (isPlaying) {
+              initializeGame();
+            }
+          }, 1000); // Longer delay for round completion
+          return; // Exit early to prevent normal feedback
+        }
       } else {
         tsParticles.load("failureParticles", {
           preset: "confetti",
@@ -230,6 +294,10 @@ const KanaGame = () => {
             number: { value: 30 },
             life: { duration: 1.5 },
           },
+        }).then((container) => {
+          setTimeout(() => {
+            container?.destroy();
+          }, 2000);
         });
       }
 
@@ -247,11 +315,6 @@ const KanaGame = () => {
         };
       });
 
-      setScore(prev => ({
-        correct: prev.correct + (isCorrect ? 1 : 0),
-        wrong: prev.wrong + (isCorrect ? 0 : 1)
-      }));
-
       setFeedback({
         isCorrect,
         message: isCorrect ? 'Correct!' : `Incorrect. The answer was "${currentKana.romaji}"`
@@ -266,7 +329,7 @@ const KanaGame = () => {
         }
       }, 2000);
     }
-  }, [position.y, choices, currentKana, isPlaying, initializeGame, playSuccessSound, playFailureSound]);
+  }, [position.y, choices, currentKana, isPlaying, initializeGame, score]);
 
   // Add round complete effect
   const showRoundCompleteEffect = useCallback(() => {
