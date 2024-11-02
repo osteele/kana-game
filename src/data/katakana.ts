@@ -1,4 +1,5 @@
 import { HIRAGANA_SETS } from "./hiragana";
+import { CharacterSet, Kana } from "./kana";
 
 // Mapping for hiragana to katakana conversion
 const HIRAGANA_TO_KATAKANA = {
@@ -31,17 +32,17 @@ const HIRAGANA_TO_KATAKANA = {
   'ぢょ': 'ヂョ', 'ぢゅ': 'ヂュ', 'ぢゃ': 'ヂャ',
   'ぴょ': 'ピョ', 'ぴゅ': 'ピュ', 'ぴゃ': 'ピャ',
 };
-// Function to generate katakana sets
 
-export const generateKatakanaSet = (hiraganaSet) => {
+// Generate katakana sets
+export const generateKatakanaSet = (hiraganaSet: Kana[]): Kana[] => {
   return hiraganaSet.map(({ hiragana, romaji }) => ({
     hiragana: HIRAGANA_TO_KATAKANA[hiragana],
     romaji,
   }));
 };
-// Function to get combined sets based on writing system preference
 
-export const getKanaSets = (level, writingSystem = 'hiragana') => {
+// Get combined sets based on writing system preference
+export const getKanaSets = (level: number, writingSystem: CharacterSet = 'hiragana'): Kana[] => {
   const hiraganaUpToLevel = Object.entries(HIRAGANA_SETS)
     .filter(([lvl]) => Number(lvl) <= level)
     .flatMap(([_, set]) => set);

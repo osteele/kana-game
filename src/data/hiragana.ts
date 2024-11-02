@@ -1,5 +1,7 @@
+import { Kana } from "./kana";
+
 // Initial kana sets organized by difficulty level
-export const HIRAGANA_SETS = {
+export const HIRAGANA_SETS: Record<number, Kana[]> = {
   1: [
     { hiragana: 'あ', romaji: 'a' },
     { hiragana: 'い', romaji: 'i' },

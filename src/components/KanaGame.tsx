@@ -1,6 +1,7 @@
-import { Clock, Settings as SettingsIcon, HelpCircle } from 'lucide-react';
+import { Clock, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { HIRAGANA_SETS } from '../data/hiragana';
+import { CharacterSet, Kana } from "../data/kana";
 import { getKanaSets } from "../data/katakana";
 import Settings from './Settings';
 
@@ -13,20 +14,19 @@ const KanaGame = () => {
   const [score, setScore] = useState({ correct: 0, wrong: 0 });
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentKana, setCurrentKana] = useState(null);
+  const [currentKana, setCurrentKana] = useState<Kana | null>(null);
   const [position, setPosition] = useState({ x: 50, y: 0 });
   const [velocity, setVelocity] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [choices, setChoices] = useState([]);
-  const [feedback, setFeedback] = useState(null);
+  const [choices, setChoices] = useState<Kana[]>([]);
+  const [feedback, setFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-
-  const timerRef = useRef(null);
-  const animationFrameRef = useRef(null);
+  const timerRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Add writing system state
-  const [writingSystem, setWritingSystem] = useState('hiragana');
+  const [writingSystem, setWritingSystem] = useState<CharacterSet>('hiragana');
 
   // Initialize or reset game state
   const initializeGame = useCallback(() => {
@@ -58,7 +58,11 @@ const KanaGame = () => {
         setElapsedTime(prev => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(timerRef.current);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, [isPlaying, isPaused]);
 
   // Save level to localStorage
@@ -100,7 +104,7 @@ const KanaGame = () => {
 
   // Check for collision with bottom
   useEffect(() => {
-    if (position.y >= 80 && !isWaitingForNext) {
+    if (position.y >= 80 && !isWaitingForNext && currentKana) {
       const column = Math.floor((position.x / 100) * 5);
       const isCorrect = choices[column].romaji === currentKana.romaji;
 
