@@ -152,3 +152,66 @@ const isCompound = (char: string) => char.length > 1;
 const isDakuten = (char: string) => 'がぎぐげござじずぜぞだぢづでどばびぶべぼガギグゲゴザジズゼゾダヂヅデドバビブベボ'.includes(char);
 const isHandakuten = (char: string) => 'ぱぴぷぺぽパピプペポ'.includes(char);
 const isSmallTsu = (char: string) => char === 'っッ';
+
+// Sets of visually similar characters
+export const similarHiragana = [
+  ['あ', 'お'],
+  ['は', 'ほ'],
+  ['ぬ', 'め'],
+  ['わ', 'れ'],
+  ['ね', 'れ'],
+  ['る', 'ろ'],
+  ['き', 'さ'],
+];
+
+export const similarKatakana = [
+  ['ソ', 'ン'],
+  ['シ', 'ツ'],
+  ['ノ', 'メ'],
+  ['ウ', 'フ'],
+  ['カ', 'カ'],
+  ['チ', 'テ'],
+];
+
+// Helper function to determine if a character is hiragana
+export const isHiragana = (char: string): boolean => {
+  // Check if it's a compound
+  if (char.length > 1) {
+    return isHiragana(char[0]); // Check first character
+  }
+  return char >= 'ぁ' && char <= 'ゖ';
+};
+
+// Helper function to determine if a character is katakana
+export const isKatakana = (char: string): boolean => {
+  // Check if it's a compound
+  if (char.length > 1) {
+    return isKatakana(char[0]); // Check first character
+  }
+  return char >= 'ァ' && char <= 'ヶ';
+};
+
+// Function to get visually similar characters
+export const getSimilarCharacters = (char: string): string[] => {
+  // Handle compound characters
+  if (char.length > 1) {
+    const baseChar = char[0];
+    const suffix = char.slice(1);
+    const similarBase = getSimilarCharacters(baseChar);
+    return similarBase.map(c => c + suffix);
+  }
+
+  // Check hiragana similarities
+  const hiraganaSet = similarHiragana.find(set => set.includes(char));
+  if (hiraganaSet) {
+    return hiraganaSet.filter(c => c !== char);
+  }
+
+  // Check katakana similarities
+  const katakanaSet = similarKatakana.find(set => set.includes(char));
+  if (katakanaSet) {
+    return katakanaSet.filter(c => c !== char);
+  }
+
+  return []; // Return empty array if no similar characters found
+};

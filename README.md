@@ -10,6 +10,8 @@ An interactive game for learning Japanese hiragana characters. The game presents
 - Multiple difficulty levels
 - Session timer and score tracking
 - Responsive design for both desktop and mobile
+- The game includes visually similar characters as distractors to help you learn
+  to distinguish between them
 
 ## Prerequisites
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { HIRAGANA_SETS } from '../data/hiragana';
+import { CharacterSet } from '../data/kana';
 import { getKanaSets } from "../data/katakana";
 import Gojuuon from './Gojuuon';
 
@@ -10,6 +11,13 @@ const Settings = ({
   setWritingSystem,
   showKanaDetails,
   setShowKanaDetails
+} : {
+  level: number;
+  setLevel: (level: number) => void;
+  writingSystem: CharacterSet;
+  setWritingSystem: (writingSystem: CharacterSet) => void;
+  showKanaDetails: boolean;
+  setShowKanaDetails: (showKanaDetails: boolean) => void;
 }) => {
   const getCharacterStatus = (romaji: string) => {
     const currentKana = getKanaSets(level, writingSystem).find(k => k.romaji === romaji);
@@ -44,7 +52,7 @@ const Settings = ({
             <label>Writing System:</label>
             <select
               value={writingSystem}
-              onChange={(e) => setWritingSystem(e.target.value)}
+              onChange={(e) => setWritingSystem(e.target.value.toLowerCase() as CharacterSet)}
               className="p-2 border rounded"
             >
               <option value="hiragana">Hiragana</option>
@@ -61,7 +69,7 @@ const Settings = ({
               Currently practicing {getKanaSets(level, writingSystem).length} characters
             </span>
             <button
-              onClick={() => setShowKanaDetails(prev => !prev)}
+              onClick={() => setShowKanaDetails(!showKanaDetails)}
               className="text-blue-500 hover:text-blue-600 text-sm underline"
             >
               {showKanaDetails ? 'Hide details' : 'Show details'}

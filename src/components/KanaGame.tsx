@@ -4,7 +4,7 @@ import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
 import { HIRAGANA_SETS } from '../data/hiragana';
-import { CharacterSet, Kana } from "../data/kana";
+import { CharacterSet, getSimilarCharacters, Kana } from "../data/kana";
 import { getKanaSets } from "../data/katakana";
 import Settings from './Settings';
 
@@ -59,18 +59,53 @@ const KanaGame = () => {
 
   // Initialize or reset game state
   const initializeGame = useCallback(() => {
-    const currentSet = HIRAGANA_SETS[level];
+    const currentSet = writingSystem === 'hiragana' ? HIRAGANA_SETS[level] : getKanaSets(level, writingSystem);
     const kana = currentSet[Math.floor(Math.random() * currentSet.length)];
+
+    // Get visually similar characters first
+    const similarChars = getSimilarCharacters(kana.hiragana);
+    let visuallySimularKana: Kana[] = [];
+
+    // Find the Kana objects for visually similar characters
+    if (similarChars.length > 0) {
+      // Get all kana from all levels
+      const allKana = writingSystem === 'hiragana'
+        ? Object.values(HIRAGANA_SETS).flat()
+        : getKanaSets(Object.keys(HIRAGANA_SETS).length, writingSystem);
+
+      visuallySimularKana = similarChars
+        .map(char => allKana.find(k => k.hiragana === char))
+        .filter((k): k is Kana => k !== undefined);
+    }
 
     // Generate choices including the correct answer and random others
     // Combine current and previous levels' characters for distractors
-    const availableKana = Array.from({ length: level }, (_, i) => HIRAGANA_SETS[i + 1]).flat();
+    const availableKana = Array.from({ length: level }, (_, i) =>
+      writingSystem === 'hiragana' ? HIRAGANA_SETS[i + 1] : getKanaSets(i + 1, writingSystem)
+    ).flat();
+
+    // Filter out the correct answer and get random distractors
     const wrongChoices = availableKana
       .filter(k => k.romaji !== kana.romaji)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 4);
+      .sort(() => Math.random() - 0.5);
 
-    const allChoices = [...wrongChoices, kana]
+    // Prioritize visually similar characters
+    let distractors: Kana[] = [];
+
+    // Add up to 2 visually similar characters if available
+    if (visuallySimularKana.length > 0) {
+      distractors = visuallySimularKana
+        .filter(k => k.romaji !== kana.romaji)
+        .slice(0, 2);
+    }
+
+    // Fill remaining slots with random distractors
+    distractors = [
+      ...distractors,
+      ...wrongChoices.filter(k => !distractors.some(d => d.romaji === k.romaji))
+    ].slice(0, 4);
+
+    const allChoices = [...distractors, kana]
       .sort(() => Math.random() - 0.5);
 
     setCurrentKana(kana);
@@ -79,7 +114,7 @@ const KanaGame = () => {
     setVelocity(0);
     setFeedback(null);
     setIsWaitingForNext(false);
-  }, [level]);
+  }, [level, writingSystem]);
 
   // Start game timer
   useEffect(() => {
