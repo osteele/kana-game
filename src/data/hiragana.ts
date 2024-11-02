@@ -1,158 +1,103 @@
 import { Kana } from "./kana";
 
-// Initial kana sets organized by difficulty level
-export const HIRAGANA_SETS: Record<number, Kana[]> = {
-  1: [
-    { hiragana: 'あ', romaji: 'a' },
-    { hiragana: 'い', romaji: 'i' },
-    { hiragana: 'う', romaji: 'u' },
-    { hiragana: 'え', romaji: 'e' },
-    { hiragana: 'お', romaji: 'o' },
-    { hiragana: 'ん', romaji: 'n' },
-  ],
-  2: [
-    { hiragana: 'か', romaji: 'ka' },
-    { hiragana: 'き', romaji: 'ki' },
-    { hiragana: 'く', romaji: 'ku' },
-    { hiragana: 'け', romaji: 'ke' },
-    { hiragana: 'こ', romaji: 'ko' },
-  ],
-  3: [
-    { hiragana: 'さ', romaji: 'sa' },
-    { hiragana: 'し', romaji: 'shi' },
-    { hiragana: 'す', romaji: 'su' },
-    { hiragana: 'せ', romaji: 'se' },
-    { hiragana: 'そ', romaji: 'so' },
-  ],
-  4: [
-    { hiragana: 'た', romaji: 'ta' },
-    { hiragana: 'ち', romaji: 'chi' },
-    { hiragana: 'つ', romaji: 'tsu' },
-    { hiragana: 'て', romaji: 'te' },
-    { hiragana: 'と', romaji: 'to' },
-    { hiragana: 'っ', romaji: 'tsu' },
-  ],
-  5: [
-    { hiragana: 'な', romaji: 'na' },
-    { hiragana: 'に', romaji: 'ni' },
-    { hiragana: 'ぬ', romaji: 'nu' },
-    { hiragana: 'ね', romaji: 'ne' },
-    { hiragana: 'の', romaji: 'no' },
-  ],
-  6: [
-    { hiragana: 'は', romaji: 'ha' },
-    { hiragana: 'ひ', romaji: 'hi' },
-    { hiragana: 'ふ', romaji: 'fu' },
-    { hiragana: 'へ', romaji: 'he' },
-    { hiragana: 'ほ', romaji: 'ho' },
-  ],
-  7: [
-    { hiragana: 'ま', romaji: 'ma' },
-    { hiragana: 'み', romaji: 'mi' },
-    { hiragana: 'む', romaji: 'mu' },
-    { hiragana: 'め', romaji: 'me' },
-    { hiragana: 'も', romaji: 'mo' },
-  ],
-  8: [
-    { hiragana: 'や', romaji: 'ya' },
-    { hiragana: 'ゆ', romaji: 'yu' },
-    { hiragana: 'よ', romaji: 'yo' },
-  ],
-  9: [
-    { hiragana: 'ら', romaji: 'ra' },
-    { hiragana: 'り', romaji: 'ri' },
-    { hiragana: 'る', romaji: 'ru' },
-    { hiragana: 'れ', romaji: 're' },
-    { hiragana: 'ろ', romaji: 'ro' },
-  ],
-  10: [
-    { hiragana: 'わ', romaji: 'wa' },
-    { hiragana: 'を', romaji: 'wo' },
-    { hiragana: 'ん', romaji: 'n' },
-  ],
-  11: [
-    { hiragana: 'が', romaji: 'ga' },
-    { hiragana: 'ぎ', romaji: 'gi' },
-    { hiragana: 'ぐ', romaji: 'gu' },
-    { hiragana: 'げ', romaji: 'ge' },
-    { hiragana: 'ご', romaji: 'go' },
-  ],
-  12: [
-    { hiragana: 'ざ', romaji: 'za' },
-    { hiragana: 'じ', romaji: 'ji' },
-    { hiragana: 'ず', romaji: 'zu' },
-    { hiragana: 'ぜ', romaji: 'ze' },
-    { hiragana: 'ぞ', romaji: 'zo' },
-  ],
-  13: [
-    { hiragana: 'だ', romaji: 'da' },
-    { hiragana: 'ぢ', romaji: 'ji' },
-    { hiragana: 'づ', romaji: 'zu' },
-    { hiragana: 'で', romaji: 'de' },
-    { hiragana: 'ど', romaji: 'do' },
-  ],
-  14: [
-    { hiragana: 'ば', romaji: 'ba' },
-    { hiragana: 'び', romaji: 'bi' },
-    { hiragana: 'ぶ', romaji: 'bu' },
-    { hiragana: 'べ', romaji: 'be' },
-    { hiragana: 'ぼ', romaji: 'bo' },
-  ],
-  15: [
-    { hiragana: 'ぱ', romaji: 'pa' },
-    { hiragana: 'ぴ', romaji: 'pi' },
-    { hiragana: 'ぷ', romaji: 'pu' },
-    { hiragana: 'ぺ', romaji: 'pe' },
-    { hiragana: 'ぽ', romaji: 'po' },
-  ],
-  16: [
-    { hiragana: 'きょ', romaji: 'kyo' },
-    { hiragana: 'きゅ', romaji: 'kyu' },
-    { hiragana: 'きゃ', romaji: 'kya' },
-    { hiragana: 'しょ', romaji: 'sho' },
-    { hiragana: 'しゅ', romaji: 'shu' },
-    { hiragana: 'しゃ', romaji: 'sha' },
-  ],
-  17: [
-    { hiragana: 'ちょ', romaji: 'cho' },
-    { hiragana: 'ちゅ', romaji: 'chu' },
-    { hiragana: 'ちゃ', romaji: 'cha' },
-    { hiragana: 'にょ', romaji: 'nyo' },
-    { hiragana: 'にゅ', romaji: 'nyu' },
-    { hiragana: 'にゃ', romaji: 'nya' },
-  ],
-  18: [
-    { hiragana: 'ひょ', romaji: 'hyo' },
-    { hiragana: 'ひゅ', romaji: 'hyu' },
-    { hiragana: 'ひゃ', romaji: 'hya' },
-    { hiragana: 'みょ', romaji: 'myo' },
-    { hiragana: 'みゅ', romaji: 'myu' },
-    { hiragana: 'みゃ', romaji: 'mya' },
-  ],
-  19: [
-    { hiragana: 'りょ', romaji: 'ryo' },
-    { hiragana: 'りゅ', romaji: 'ryu' },
-    { hiragana: 'りゃ', romaji: 'rya' },
-  ],
-  20: [
-    { hiragana: 'ぎょ', romaji: 'gyo' },
-    { hiragana: 'ぎゅ', romaji: 'gyu' },
-    { hiragana: 'ぎゃ', romaji: 'gya' },
-    { hiragana: 'じょ', romaji: 'jo' },
-    { hiragana: 'じゅ', romaji: 'ju' },
-    { hiragana: 'じゃ', romaji: 'ja' },
-  ],
-  21: [
-    { hiragana: 'びょ', romaji: 'byo' },
-    { hiragana: 'びゅ', romaji: 'byu' },
-    { hiragana: 'びゃ', romaji: 'bya' },
-    { hiragana: 'ぢょ', romaji: 'jo' },
-    { hiragana: 'ぢゅ', romaji: 'ju' },
-    { hiragana: 'ぢゃ', romaji: 'ja' },
-  ],
-  22: [
-    { hiragana: 'ぴょ', romaji: 'pyo' },
-    { hiragana: 'ぴゅ', romaji: 'pyu' },
-    { hiragana: 'ぴゃ', romaji: 'pya' },
-  ],
+const HIRAGANA_FREQUENCY = [
+  "の", "い", "し", "て", "あ", "う", "お", "に", "ん", "か",
+  "た", "る", "を", "が", "で", "な", "ま", "す", "く", "と",
+  "も", "こ", "つ", "や", "さ", "え", "れ", "は", "ら", "き",
+  "け", "そ", "ひ", "ば", "じ", "び", "ぷ", "ぴ", "ふ", "ぶ",
+  "ぬ", "ね", "む", "ほ", "め", "わ", "み", "せ", "ち", "へ",
+  "り", "ぐ", "ざ", "ず", "げ", "ご", "だ", "づ", "ど", "ぞ",
+  "ぢ", "ぺ", "ぽ", "しゃ", "しゅ", "しょ", "ちゃ", "ちゅ", "ちょ",
+  "きゃ", "きゅ", "きょ", "にゃ", "にゅ", "にょ", "ひゃ", "ひゅ", "ひょ",
+  "みゃ", "みゅ", "みょ", "りゃ", "りゅ", "りょ", "ぎゃ", "ぎゅ", "ぎょ",
+  "じゃ", "じゅ", "じょ", "びゃ", "びゅ", "びょ", "ぴゃ", "ぴゅ", "ぴょ",
+  "よ", "ろ", "ぜ", "べ", "ぼ", "ゆ", "ぎ", "ぱ", "ぢゃ", "ぢゅ", "ぢょ"
+];
+
+// Define romaji mappings
+const HIRAGANA_TO_ROMAJI: Record<string, string> = {
+  'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o', 'ん': 'n',
+  'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',
+  'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so',
+  'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to', 'っ': 'tsu',
+  'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no',
+  'は': 'ha', 'ひ': 'hi', 'ふ': 'fu', 'へ': 'he', 'ほ': 'ho',
+  'ま': 'ma', 'み': 'mi', 'む': 'mu', 'め': 'me', 'も': 'mo',
+  'や': 'ya', 'ゆ': 'yu', 'よ': 'yo',
+  'ら': 'ra', 'り': 'ri', 'る': 'ru', 'れ': 're', 'ろ': 'ro',
+  'わ': 'wa', 'を': 'wo',
+  'が': 'ga', 'ぎ': 'gi', 'ぐ': 'gu', 'げ': 'ge', 'ご': 'go',
+  'ざ': 'za', 'じ': 'ji', 'ず': 'zu', 'ぜ': 'ze', 'ぞ': 'zo',
+  'だ': 'da', 'ぢ': 'dji', 'づ': 'dzu', 'で': 'de', 'ど': 'do',
+  'ば': 'ba', 'び': 'bi', 'ぶ': 'bu', 'べ': 'be', 'ぼ': 'bo',
+  'ぱ': 'pa', 'ぴ': 'pi', 'ぷ': 'pu', 'ぺ': 'pe', 'ぽ': 'po',
+  'きゃ': 'kya', 'きゅ': 'kyu', 'きょ': 'kyo',
+  'しゃ': 'sha', 'しゅ': 'shu', 'しょ': 'sho',
+  'ちゃ': 'cha', 'ちゅ': 'chu', 'ちょ': 'cho',
+  'にゃ': 'nya', 'にゅ': 'nyu', 'にょ': 'nyo',
+  'ひゃ': 'hya', 'ひゅ': 'hyu', 'ひょ': 'hyo',
+  'みゃ': 'mya', 'みゅ': 'myu', 'みょ': 'myo',
+  'りゃ': 'rya', 'りゅ': 'ryu', 'りょ': 'ryo',
+  'ぎゃ': 'gya', 'ぎゅ': 'gyu', 'ぎょ': 'gyo',
+  'じゃ': 'ja', 'じゅ': 'ju', 'じょ': 'jo',
+  'びゃ': 'bya', 'びゅ': 'byu', 'びょ': 'byo',
+  'ぴゃ': 'pya', 'ぴゅ': 'pyu', 'ぴょ': 'pyo',
+  'ぢゃ': 'ja', 'ぢゅ': 'ju', 'ぢょ': 'jo'
 };
+
+// Define character groups by level
+const HIRAGANA_LEVELS: Record<number, string[]> = {
+  1: ['あ', 'い', 'う', 'え', 'お', 'ん'],
+  2: ['か', 'き', 'く', 'け', 'こ'],
+  3: ['さ', 'し', 'す', 'せ', 'そ'],
+  4: ['た', 'ち', 'つ', 'て', 'と', 'っ'],
+  5: ['な', 'に', 'ぬ', 'ね', 'の'],
+  6: ['は', 'ひ', 'ふ', 'へ', 'ほ'],
+  7: ['ま', 'み', 'む', 'め', 'も'],
+  8: ['や', 'ゆ', 'よ'],
+  9: ['ら', 'り', 'る', 'れ', 'ろ'],
+  10: ['わ', 'を', 'ん'],
+  11: ['が', 'ぎ', 'ぐ', 'げ', 'ご'],
+  12: ['ざ', 'じ', 'ず', 'ぜ', 'ぞ'],
+  13: ['だ', 'ぢ', 'づ', 'で', 'ど'],
+  14: ['ば', 'び', 'ぶ', 'べ', 'ぼ'],
+  15: ['ぱ', 'ぴ', 'ぷ', 'ぺ', 'ぽ'],
+  16: ['きょ', 'きゅ', 'きゃ', 'しょ', 'しゅ', 'しゃ'],
+  17: ['ちょ', 'ちゅ', 'ちゃ', 'にょ', 'にゅ', 'にゃ'],
+  18: ['ひょ', 'ひゅ', 'ひゃ', 'みょ', 'みゅ', 'みゃ'],
+  19: ['りょ', 'りゅ', 'りゃ'],
+  20: ['ぎょ', 'ぎゅ', 'ぎゃ', 'じょ', 'じゅ', 'じゃ'],
+  21: ['びょ', 'びゅ', 'びゃ', 'ぢょ', 'ぢゅ', 'ぢゃ'],
+  22: ['ぴょ', 'ぴゅ', 'ぴゃ']
+};
+
+// Dynamically construct HIRAGANA_SETS
+export const HIRAGANA_SETS: Record<number, Kana[]> = Object.entries(HIRAGANA_LEVELS).reduce(
+  (sets, [level, characters]) => ({
+    ...sets,
+    [level]: characters.map(hiragana => ({
+      hiragana,
+      romaji: HIRAGANA_TO_ROMAJI[hiragana]
+    }))
+  }),
+  {}
+);
+
+// Function to find missing characters
+export function findMissingHiragana(): string[] {
+  // Get all unique hiragana from HIRAGANA_SETS
+  const setHiragana = new Set(
+    Object.values(HIRAGANA_SETS)
+      .flat()
+      .map(k => k.hiragana)
+  );
+
+  // Convert HIRAGANA_FREQUENCY to Set for easier comparison
+  const freqSet = new Set(HIRAGANA_FREQUENCY);
+
+  // Find characters in sets but not in frequency
+  return Array.from(setHiragana).filter(h => !freqSet.has(h));
+}
+
+// Log missing characters when module is loaded
+console.log('Characters in HIRAGANA_SETS but not in HIRAGANA_FREQUENCY:', findMissingHiragana());

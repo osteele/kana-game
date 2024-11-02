@@ -1,6 +1,7 @@
 import React from 'react';
 import { HIRAGANA_SETS } from '../data/hiragana';
 import { getKanaSets } from "../data/katakana";
+import Gojuuon from './Gojuuon';
 
 const Settings = ({
   level,
@@ -10,6 +11,15 @@ const Settings = ({
   showKanaDetails,
   setShowKanaDetails
 }) => {
+  const getCharacterStatus = (romaji: string) => {
+    const currentKana = getKanaSets(level, writingSystem).find(k => k.romaji === romaji);
+    const previousKana = getKanaSets(level - 1, writingSystem).find(k => k.romaji === romaji);
+
+    if (currentKana) return 'current';
+    if (previousKana) return 'previous';
+    return 'upcoming';
+  };
+
   return (
     <div className="mb-4 p-4 bg-gray-50 rounded">
       <div className="space-y-4">
@@ -61,14 +71,10 @@ const Settings = ({
           {/* Expandable character details */}
           {showKanaDetails && (
             <div className="mt-4 bg-white p-4 rounded border">
-              <div className="grid grid-cols-5 gap-2 md:grid-cols-8">
-                {getKanaSets(level, writingSystem).map((kana, idx) => (
-                  <div key={idx} className="flex items-center space-x-2 bg-gray-50 p-2 rounded">
-                    <span className="text-lg">{kana.hiragana}</span>
-                    <span className="text-gray-600 text-sm">({kana.romaji})</span>
-                  </div>
-                ))}
-              </div>
+              <Gojuuon
+                getCharacterStatus={getCharacterStatus}
+                writingSystem={writingSystem}
+              />
             </div>
           )}
         </div>
