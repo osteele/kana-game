@@ -62,8 +62,9 @@ const KanaGame = () => {
     const kana = currentSet[Math.floor(Math.random() * currentSet.length)];
 
     // Generate choices including the correct answer and random others
-    const allKana = Object.values(HIRAGANA_SETS).flat();
-    const wrongChoices = allKana
+    // Combine current and previous levels' characters for distractors
+    const availableKana = Array.from({ length: level }, (_, i) => HIRAGANA_SETS[i + 1]).flat();
+    const wrongChoices = availableKana
       .filter(k => k.romaji !== kana.romaji)
       .sort(() => Math.random() - 0.5)
       .slice(0, 4);
