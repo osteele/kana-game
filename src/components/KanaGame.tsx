@@ -1,9 +1,13 @@
 import { Clock, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { tsParticles } from "tsparticles-engine";
+import { loadConfettiPreset } from "tsparticles-preset-confetti";
+import { loadFireworksPreset } from "tsparticles-preset-fireworks";
 import { HIRAGANA_SETS } from '../data/hiragana';
 import { CharacterSet, Kana } from "../data/kana";
 import { getKanaSets } from "../data/katakana";
 import Settings from './Settings';
+
 
 // Add new interface for character stats
 interface KanaStats {
@@ -126,11 +130,45 @@ const KanaGame = () => {
     };
   }, [isPlaying, animate]);
 
-  // Check for collision with bottom
+  // Add particle container refs
+  const successParticlesRef = useRef<HTMLDivElement>(null);
+  const failureParticlesRef = useRef<HTMLDivElement>(null);
+  const roundCompleteParticlesRef = useRef<HTMLDivElement>(null);
+
+  // Initialize particles
+  useEffect(() => {
+    const initParticles = async () => {
+      await loadConfettiPreset(tsParticles);
+      await loadFireworksPreset(tsParticles);
+    };
+    initParticles();
+  }, []);
+
+  // Modify the collision effect handler
   useEffect(() => {
     if (position.y >= 80 && !isWaitingForNext && currentKana) {
       const column = Math.floor((position.x / 100) * 5);
       const isCorrect = choices[column].romaji === currentKana.romaji;
+
+      // Show particle effects based on result
+      if (isCorrect) {
+        tsParticles.load("successParticles", {
+          preset: "confetti",
+          particles: {
+            number: { value: 50 },
+            life: { duration: 2 },
+          },
+        });
+      } else {
+        tsParticles.load("failureParticles", {
+          preset: "confetti",
+          particles: {
+            color: { value: "#ff0000" },
+            number: { value: 30 },
+            life: { duration: 1.5 },
+          },
+        });
+      }
 
       // Update character stats
       setCharacterStats(prev => {
@@ -166,6 +204,17 @@ const KanaGame = () => {
       }, 2000);
     }
   }, [position.y, choices, currentKana, isPlaying, initializeGame]);
+
+  // Add round complete effect
+  const showRoundCompleteEffect = useCallback(() => {
+    tsParticles.load("roundCompleteParticles", {
+      preset: "fireworks",
+      particles: {
+        number: { value: 10 },
+        life: { duration: 3 },
+      },
+    });
+  }, []);
 
   // Handle keyboard input
   useEffect(() => {
@@ -334,6 +383,11 @@ const KanaGame = () => {
 
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-4 select-none">
+      {/* Add particle containers */}
+      <div id="successParticles" ref={successParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
+      <div id="failureParticles" ref={failureParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
+      <div id="roundCompleteParticles" ref={roundCompleteParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
+
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-4">
