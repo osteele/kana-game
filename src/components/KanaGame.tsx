@@ -4,23 +4,13 @@ import type { ISourceOptions } from "tsparticles-engine";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
-import { HIRAGANA_SETS } from '../data/hiragana';
-import { CharacterSet, getSimilarCharacters, Kana } from "../data/kana";
-import { getKanaSets } from "../data/katakana";
+import { useGameState } from '../hooks/useGameState';
+import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
 
 const ROUND_COMPLETE_THRESHOLD = 10;
 
-// Add new interface for character stats
-interface KanaStats {
-  correct: number;
-  wrong: number;
-  lastSeen?: number;
-}
 
-interface KanaStatsMap {
-  [key: string]: KanaStats;
-}
 
 type ParticleEffectType = 'success' | 'failure' | 'roundComplete';
 
@@ -144,105 +134,32 @@ const useGameAudio = (): GameSound => {
 };
 
 const KanaGame = () => {
-  // Game state
-  const [level, setLevel] = useState(() => {
-    const saved = localStorage.getItem('kanaGameLevel');
-    return saved ? parseInt(saved) : 1;
-  });
-  const [score, setScore] = useState({ correct: 0, wrong: 0 });
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentKana, setCurrentKana] = useState<Kana | null>(null);
-  const [position, setPosition] = useState({ x: 50, y: 0 });
-  const [velocity, setVelocity] = useState(0);
+  const { state, actions, dispatch } = useGameState();
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [choices, setChoices] = useState<Kana[]>([]);
-  const [feedback, setFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
-  const [isWaitingForNext, setIsWaitingForNext] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const [previousPauseState, setPreviousPauseState] = useState(false);
   const timerRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  // Add writing system state
-  const [writingSystem, setWritingSystem] = useState<CharacterSet>('hiragana');
-
-  // Add stats state
   const [characterStats, setCharacterStats] = useState<KanaStatsMap>(() => {
     const saved = localStorage.getItem('kanaGameStats');
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Update stats storage effect
   useEffect(() => {
     localStorage.setItem('kanaGameStats', JSON.stringify(characterStats));
   }, [characterStats]);
 
-  // Initialize or reset game state
+  // Replace initializeGame with:
   const initializeGame = useCallback(() => {
-    const currentSet = writingSystem === 'hiragana' ? HIRAGANA_SETS[level] : getKanaSets(level, writingSystem);
-    const kana = currentSet[Math.floor(Math.random() * currentSet.length)];
-
-    // Get visually similar characters first
-    const similarChars = getSimilarCharacters(kana.hiragana);
-    let visuallySimularKana: Kana[] = [];
-
-    // Find the Kana objects for visually similar characters
-    if (similarChars.length > 0) {
-      // Get all kana from all levels
-      const allKana = writingSystem === 'hiragana'
-        ? Object.values(HIRAGANA_SETS).flat()
-        : getKanaSets(Object.keys(HIRAGANA_SETS).length, writingSystem);
-
-      visuallySimularKana = similarChars
-        .map(char => allKana.find(k => k.hiragana === char))
-        .filter((k): k is Kana => k !== undefined);
-    }
-
-    // Generate choices including the correct answer and random others
-    // Combine current and previous levels' characters for distractors
-    const availableKana = Array.from({ length: level }, (_, i) =>
-      writingSystem === 'hiragana' ? HIRAGANA_SETS[i + 1] : getKanaSets(i + 1, writingSystem)
-    ).flat();
-
-    // Filter out the correct answer and get random distractors
-    const wrongChoices = availableKana
-      .filter(k => k.romaji !== kana.romaji)
-      .sort(() => Math.random() - 0.5);
-
-    // Prioritize visually similar characters
-    let distractors: Kana[] = [];
-
-    // Add up to 2 visually similar characters if available
-    if (visuallySimularKana.length > 0) {
-      distractors = visuallySimularKana
-        .filter(k => k.romaji !== kana.romaji)
-        .slice(0, 2);
-    }
-
-    // Fill remaining slots with random distractors
-    distractors = [
-      ...distractors,
-      ...wrongChoices.filter(k => !distractors.some(d => d.romaji === k.romaji))
-    ].slice(0, 4);
-
-    const allChoices = [...distractors, kana]
-      .sort(() => Math.random() - 0.5);
-
-    setCurrentKana(kana);
-    setChoices(allChoices);
-    setPosition({ x: 50, y: 0 });
-    setVelocity(0);
-    setFeedback(null);
-    setIsWaitingForNext(false);
-  }, [level, writingSystem]);
+    actions.initializeRound();
+  }, [actions]);
 
   // Start game timer
   useEffect(() => {
-    if (isPlaying && !isPaused) {
+    if (state.isPlaying && !state.isPaused) {
       timerRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
+        actions.tickTimer();
       }, 1000);
     }
     return () => {
@@ -250,36 +167,31 @@ const KanaGame = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [isPlaying, isPaused]);
+  }, [state.isPlaying, state.isPaused]);
 
   // Save level to localStorage
   useEffect(() => {
-    localStorage.setItem('kanaGameLevel', level.toString());
-  }, [level]);
+    localStorage.setItem('kanaGameLevel', state.level.toString());
+  }, [state.level]);
 
   // Handle animation frame updates for falling kana
   const animate = useCallback(() => {
-    if (isPlaying && !isWaitingForNext && !isPaused) {
-      setPosition(prev => {
-        // Base speed (pixels per frame)
-        const newVelocity = (velocity + .1) * 2;
-        setVelocity(newVelocity);
-        // Calculate new position
-        const newY = prev.y + newVelocity;
+    if (state.isPlaying && !state.isWaitingForNext && !state.isPaused) {
+      // Base speed (pixels per frame)
+      let velocity = state.velocity;
+      velocity += .005;
+      actions.setVelocity(velocity);
 
-        // Cap the maximum position at 80 to prevent overflow
-        return {
-          ...prev,
-          y: Math.min(newY, 80)
-        };
-      });
+      // Calculate new position
+      const newY = state.position.y + velocity;
+      actions.updatePosition(state.position.x, newY);
     }
     animationFrameRef.current = requestAnimationFrame(animate);
-  }, [isPlaying, isWaitingForNext, isPaused]);
+  }, [state.isPlaying, state.isWaitingForNext, state.isPaused, state.position, state.velocity]);
 
   // Start animation loop
   useEffect(() => {
-    if (isPlaying) {
+    if (state.isPlaying) {
       animationFrameRef.current = requestAnimationFrame(animate);
     }
     return () => {
@@ -287,7 +199,7 @@ const KanaGame = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, animate]);
+  }, [state.isPlaying, animate]);
 
   const successParticlesRef = useRef<HTMLDivElement>(null);
   const failureParticlesRef = useRef<HTMLDivElement>(null);
@@ -318,26 +230,19 @@ const KanaGame = () => {
   }, []);
 
   useEffect(() => {
-    if (position.y >= 80 && !isWaitingForNext && currentKana) {
-      const column = Math.floor((position.x / 100) * 5);
-      const isCorrect = choices[column].romaji === currentKana.romaji;
-
-      // Update score
-      const newScore = {
-        correct: score.correct + (isCorrect ? 1 : 0),
-        wrong: score.wrong + (isCorrect ? 0 : 1)
-      };
-      setScore(newScore);
+    if (state.position.y >= 80 && !state.isWaitingForNext && state.currentKana) {
+      const column = Math.floor((state.position.x / 100) * 5);
+      const isCorrect = state.choices[column].romaji === state.currentKana.romaji;
+      actions.handleAnswer(isCorrect, '');
 
       // Play appropriate sound
       if (isCorrect) {
         playSuccess();
         triggerParticleEffect('success');
 
-        if (newScore.correct > 0 && newScore.correct % ROUND_COMPLETE_THRESHOLD === 0) {
+        if (state.score.correct > 0 && state.score.correct % ROUND_COMPLETE_THRESHOLD === 0) {
           playRoundComplete();
           triggerParticleEffect('roundComplete');
-          console.log("roundCompleteParticles");
 
           tsParticles.load("roundCompleteParticles", {
             preset: "fireworks",
@@ -351,13 +256,10 @@ const KanaGame = () => {
               }, 5000);
             });
 
-          setFeedback({
-            isCorrect: true,
-            message: `Round Complete! Score: ${newScore.correct}`
-          });
+          actions.handleAnswer(true, `Round Complete! Score: ${state.score.correct}`);
 
           setTimeout(() => {
-            if (isPlaying) {
+            if (state.isPlaying) {
               initializeGame();
             }
           }, 1000); // Longer delay for round completion
@@ -370,7 +272,7 @@ const KanaGame = () => {
 
       // Update character stats
       setCharacterStats(prev => {
-        const key = `${currentKana.hiragana}`;
+        const key = `${state.currentKana?.hiragana}`;
         const existing = prev[key] || { correct: 0, wrong: 0 };
         return {
           ...prev,
@@ -382,21 +284,18 @@ const KanaGame = () => {
         };
       });
 
-      setFeedback({
-        isCorrect,
-        message: isCorrect ? 'Correct!' : `Incorrect. The answer was "${currentKana.romaji}"`
-      });
+      actions.handleAnswer(isCorrect, isCorrect ? 'Correct!' : `Incorrect. The answer was "${state.currentKana.romaji}"`);
 
-      setIsWaitingForNext(true);
+      actions.setWaitingForNext(true);
 
       // Auto-advance after delay
       setTimeout(() => {
-        if (isPlaying) {
+        if (state.isPlaying) {
           initializeGame();
         }
       }, 2000);
     }
-  }, [position.y, choices, currentKana, isPlaying, initializeGame, score]);
+  }, [state.position.y, state.choices, state.currentKana, state.isPlaying, initializeGame, state.score]);
 
   const showRoundCompleteEffect = useCallback(() => {
     tsParticles.load("roundCompleteParticles", {
@@ -410,30 +309,24 @@ const KanaGame = () => {
 
   // Handle keyboard input
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isPlaying || showHelp || showSettings) return; // Don't handle game controls if help or settings are showing
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!state.isPlaying || showHelp || showSettings) return;
 
       switch (e.key) {
         case 'ArrowLeft':
-          setPosition(prev => ({
-            ...prev,
-            x: Math.max(0, prev.x - 5)
-          }));
+          actions.updatePosition(
+            Math.max(0, state.position.x - 5),
+            state.position.y
+          );
           break;
         case 'ArrowRight':
-          setPosition(prev => ({
-            ...prev,
-            x: Math.min(100, prev.x + 5)
-          }));
+          actions.updatePosition(state.position.x + 5);
           break;
         case ' ':
-          if (isWaitingForNext) {
+          if (state.isWaitingForNext) {
             initializeGame();
           } else {
-            setPosition(prev => ({
-              ...prev,
-              y: 80
-            }));
+            actions.updatePosition(undefined, 80);
           }
           break;
         default:
@@ -443,29 +336,27 @@ const KanaGame = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, isWaitingForNext, initializeGame]);
+  }, [state.isPlaying, state.isWaitingForNext, state.position]);
 
   // Handle column click/tap
   const handleColumnClick = (index) => {
-    if (!isPlaying || isWaitingForNext || isPaused) return;
+    if (!state.isPlaying || state.isWaitingForNext || state.isPaused) return;
     const targetX = (index * 20) + 10; // 20% per column, centered at 10%
 
     // Get current column based on x position
-    const currentColumn = Math.floor((position.x / 100) * 5);
+    const currentColumn = Math.floor((state.position.x / 100) * 5);
 
     if (currentColumn === index) {
       // If clicking current column, drop to bottom
-      setPosition(prev => ({ ...prev, x: targetX, y: 80 }));
+      actions.updatePosition(targetX, 80);
     } else {
       // If clicking different column, just move horizontally
-      setPosition(prev => ({ ...prev, x: targetX }));
+      actions.updatePosition(targetX);
     }
   };
 
   const startGame = () => {
-    setIsPlaying(true);
-    setScore({ correct: 0, wrong: 0 });
-    setElapsedTime(0);
+    actions.startGame();
     initializeGame();
   };
 
@@ -476,14 +367,8 @@ const KanaGame = () => {
   };
 
   const togglePause = () => {
-    setIsPaused(prev => !prev);
+    actions.togglePause();
   };
-
-  // Update kana generation to use writing system
-  useEffect(() => {
-    const availableKana = getKanaSets(level, writingSystem);
-    setCurrentKana(availableKana[Math.floor(Math.random() * availableKana.length)]);
-  }, [level, writingSystem]);
 
   // Show kana details state
   const [showKanaDetails, setShowKanaDetails] = useState(false);
@@ -492,11 +377,11 @@ const KanaGame = () => {
   const toggleSettings = () => {
     if (!showSettings) {
       // About to show settings
-      setPreviousPauseState(isPaused);
-      setIsPaused(true);
+      setPreviousPauseState(state.isPaused);
+      actions.togglePause();
     } else {
       // About to hide settings
-      setIsPaused(previousPauseState);
+      actions.togglePause();
     }
     setShowSettings(!showSettings);
   };
@@ -504,11 +389,11 @@ const KanaGame = () => {
   const toggleHelp = () => {
     if (!showHelp) {
       // About to show help
-      setPreviousPauseState(isPaused);
-      setIsPaused(true);
+      setPreviousPauseState(state.isPaused);
+      actions.togglePause();
     } else {
       // About to hide help
-      setIsPaused(previousPauseState);
+      actions.togglePause();
     }
     setShowHelp(!showHelp);
   };
@@ -547,18 +432,18 @@ const KanaGame = () => {
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-4">
           <Clock className="w-5 h-5" />
-          <span className="text-lg">{formatTime(elapsedTime)}</span>
+          <span className="text-lg">{formatTime(state.elapsedTime)}</span>
           <div className="text-lg">
-            ✓ {score.correct} | ✗ {score.wrong}
+            ✓ {state.score.correct} | ✗ {state.score.wrong}
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {isPlaying && (
+          {state.isPlaying && (
             <button
               onClick={togglePause}
               className="p-2 rounded hover:bg-gray-100"
             >
-              {isPaused ? '▶️' : '⏸️'}
+              {state.isPaused ? '▶️' : '⏸️'}
             </button>
           )}
           <button
@@ -615,17 +500,17 @@ const KanaGame = () => {
       {/* Settings Panel */}
       {showSettings && (
         <Settings
-          level={level}
-          setLevel={setLevel}
-          writingSystem={writingSystem}
-          setWritingSystem={setWritingSystem}
+          level={state.level}
+          setLevel={actions.setLevel}
+          writingSystem={state.writingSystem}
+          setWritingSystem={actions.setWritingSystem}
           showKanaDetails={showKanaDetails}
           setShowKanaDetails={setShowKanaDetails}
         />
       )}
 
       {/* Game Area */}
-      {!isPlaying ? (
+      {!state.isPlaying ? (
         <div className="text-center mt-20">
           <button
             onClick={startGame}
@@ -637,21 +522,21 @@ const KanaGame = () => {
       ) : (
         <div className="relative w-full h-96 border-2 border-gray-200 rounded overflow-hidden">
           {/* Falling Kana */}
-          {currentKana && (
+          {state.currentKana && (
             <div
               className="absolute text-4xl transform -translate-x-1/2 z-10"
               style={{
-                left: `${position.x}%`,
-                top: `${position.y}%`,
+                left: `${state.position.x}%`,
+                top: `${state.position.y}%`,
               }}
             >
-              {currentKana.hiragana}
+              {state.currentKana.hiragana}
             </div>
           )}
 
           {/* Answer Columns */}
           <div className="absolute bottom-0 w-full flex h-16">
-            {choices.map((choice, index) => (
+            {state.choices.map((choice, index) => (
               <div
                 key={index}
                 onClick={() => handleColumnClick(index)}
@@ -663,12 +548,12 @@ const KanaGame = () => {
           </div>
 
           {/* Feedback */}
-          {feedback && (
+          {state.feedback && (
             <div
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold ${feedback.isCorrect ? 'text-green-500' : 'text-red-500'
+              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold ${state.feedback.isCorrect ? 'text-green-500' : 'text-red-500'
                 }`}
             >
-              {feedback.message}
+              {state.feedback.message}
             </div>
           )}
         </div>
