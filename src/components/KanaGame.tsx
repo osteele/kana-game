@@ -380,7 +380,7 @@ const KanaGame = () => {
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (!isPlaying) return;
+      if (!isPlaying || showHelp || showSettings) return; // Don't handle game controls if help or settings are showing
 
       switch (e.key) {
         case 'ArrowLeft':
@@ -504,43 +504,6 @@ const KanaGame = () => {
     window.addEventListener('keydown', handleGlobalKeys);
     return () => window.removeEventListener('keydown', handleGlobalKeys);
   }, []);
-
-  // Game-specific keyboard handler
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isPlaying || showHelp) return; // Don't handle game controls if help is showing
-
-      switch (e.key) {
-        case 'ArrowLeft':
-          setPosition(prev => ({
-            ...prev,
-            x: Math.max(0, prev.x - 5)
-          }));
-          break;
-        case 'ArrowRight':
-          setPosition(prev => ({
-            ...prev,
-            x: Math.min(100, prev.x + 5)
-          }));
-          break;
-        case ' ':
-          if (isWaitingForNext) {
-            initializeGame();
-          } else {
-            setPosition(prev => ({
-              ...prev,
-              y: 80
-            }));
-          }
-          break;
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, isWaitingForNext, initializeGame, showHelp]);
 
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-4 select-none">
