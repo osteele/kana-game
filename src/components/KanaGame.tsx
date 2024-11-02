@@ -144,11 +144,73 @@ const KanaGame = () => {
     initParticles();
   }, []);
 
-  // Modify the collision effect handler
+  // Add Audio Context
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Initialize Audio Context
+  useEffect(() => {
+    audioContextRef.current = new AudioContext();
+    return () => {
+      audioContextRef.current?.close();
+    };
+  }, []);
+
+  // Add sound synthesis functions
+  const playSuccessSound = useCallback(() => {
+    if (!audioContextRef.current) return;
+
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Happy sound: C major arpeggio
+    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+
+    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.3);
+  }, []);
+
+  const playFailureSound = useCallback(() => {
+    if (!audioContextRef.current) return;
+
+    const ctx = audioContextRef.current;
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    // Sad sound: Descending tone
+    oscillator.frequency.setValueAtTime(400, ctx.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
+
+    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+
+    oscillator.start();
+    oscillator.stop(ctx.currentTime + 0.2);
+  }, []);
+
+  // Modify the collision effect handler to include sound
   useEffect(() => {
     if (position.y >= 80 && !isWaitingForNext && currentKana) {
       const column = Math.floor((position.x / 100) * 5);
       const isCorrect = choices[column].romaji === currentKana.romaji;
+
+      // Play appropriate sound
+      if (isCorrect) {
+        playSuccessSound();
+      } else {
+        playFailureSound();
+      }
 
       // Show particle effects based on result
       if (isCorrect) {
@@ -203,7 +265,7 @@ const KanaGame = () => {
         }
       }, 2000);
     }
-  }, [position.y, choices, currentKana, isPlaying, initializeGame]);
+  }, [position.y, choices, currentKana, isPlaying, initializeGame, playSuccessSound, playFailureSound]);
 
   // Add round complete effect
   const showRoundCompleteEffect = useCallback(() => {
