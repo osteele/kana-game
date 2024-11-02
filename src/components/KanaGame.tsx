@@ -1,5 +1,6 @@
 import { Clock, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { ISourceOptions } from "tsparticles-engine";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
@@ -20,6 +21,36 @@ interface KanaStats {
 interface KanaStatsMap {
   [key: string]: KanaStats;
 }
+
+type ParticleEffectType = 'success' | 'failure' | 'roundComplete';
+
+const PARTICLE_CONFIGS: Record<ParticleEffectType, ISourceOptions> = {
+  success: {
+    preset: "confetti",
+    fullScreen: { enable: true },
+    particles: {
+      number: { value: 50 },
+      life: { duration: { value: 2 } }
+    }
+  } as ISourceOptions,
+  failure: {
+    preset: "confetti",
+    fullScreen: { enable: true },
+    particles: {
+      color: { value: "#ff0000" },
+      number: { value: 30 },
+      life: { duration: { value: 1.5 } }
+    }
+  } as ISourceOptions,
+  roundComplete: {
+    preset: "fireworks",
+    fullScreen: { enable: true },
+    particles: {
+      number: { value: 10 },
+      life: { duration: { value: 3 } }
+    }
+  } as ISourceOptions
+};
 
 const KanaGame = () => {
   // Game state
@@ -167,7 +198,6 @@ const KanaGame = () => {
     };
   }, [isPlaying, animate]);
 
-  // Add particle container refs
   const successParticlesRef = useRef<HTMLDivElement>(null);
   const failureParticlesRef = useRef<HTMLDivElement>(null);
   const roundCompleteParticlesRef = useRef<HTMLDivElement>(null);
@@ -259,6 +289,19 @@ const KanaGame = () => {
     oscillator.stop(ctx.currentTime + 0.4);
   }, []);
 
+  const triggerParticleEffect = useCallback((type: ParticleEffectType) => {
+    const config = PARTICLE_CONFIGS[type];
+    const duration = type === 'roundComplete' ? 5000 : 2000;
+
+    tsParticles.load(`${type}Particles`, config).then((container) => {
+      if (container) {
+        setTimeout(() => {
+          container.destroy();
+        }, duration);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (position.y >= 80 && !isWaitingForNext && currentKana) {
       const column = Math.floor((position.x / 100) * 5);
@@ -274,27 +317,11 @@ const KanaGame = () => {
       // Play appropriate sound
       if (isCorrect) {
         playSuccessSound();
-      } else {
-        playFailureSound();
-      }
+        triggerParticleEffect('success');
 
-      // Show success/failure particles
-      if (isCorrect) {
-        tsParticles.load("successParticles", {
-          preset: "confetti",
-          particles: {
-            number: { value: 50 },
-            life: { duration: 2 },
-          },
-        }).then((container) => {
-          setTimeout(() => {
-            container?.destroy();
-          }, 2000);
-        });
-
-        // Check for round completion
         if (newScore.correct > 0 && newScore.correct % ROUND_COMPLETE_THRESHOLD === 0) {
-          playRoundCompleteSound(); // Play special sound for round completion
+          playRoundCompleteSound();
+          triggerParticleEffect('roundComplete');
           console.log("roundCompleteParticles");
 
           tsParticles.load("roundCompleteParticles", {
@@ -322,18 +349,8 @@ const KanaGame = () => {
           return; // Exit early to prevent normal feedback
         }
       } else {
-        tsParticles.load("failureParticles", {
-          preset: "confetti",
-          particles: {
-            color: { value: "#ff0000" },
-            number: { value: 30 },
-            life: { duration: 1.5 },
-          },
-        }).then((container) => {
-          setTimeout(() => {
-            container?.destroy();
-          }, 2000);
-        });
+        playFailureSound();
+        triggerParticleEffect('failure');
       }
 
       // Update character stats
@@ -366,7 +383,6 @@ const KanaGame = () => {
     }
   }, [position.y, choices, currentKana, isPlaying, initializeGame, score]);
 
-  // Add round complete effect
   const showRoundCompleteEffect = useCallback(() => {
     tsParticles.load("roundCompleteParticles", {
       preset: "fireworks",
