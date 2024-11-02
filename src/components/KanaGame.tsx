@@ -4,7 +4,7 @@ import type { ISourceOptions } from "tsparticles-engine";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
-import { useGameState } from '../hooks/useGameState';
+import { ACCELERATION_RATES, useGameState } from '../hooks/useGameState';
 import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
 
@@ -177,17 +177,17 @@ const KanaGame = () => {
   // Handle animation frame updates for falling kana
   const animate = useCallback(() => {
     if (state.isPlaying && !state.isWaitingForNext && !state.isPaused) {
-      // Base speed (pixels per frame)
-      let velocity = state.velocity;
-      velocity += .005;
-      actions.setVelocity(velocity);
+      // Use acceleration rate based on speed setting
+      const accelerationRate = ACCELERATION_RATES[state.speedSetting];
+      const newVelocity = state.velocity + accelerationRate;
+      actions.setVelocity(newVelocity);
 
       // Calculate new position
-      const newY = state.position.y + velocity;
+      const newY = state.position.y + newVelocity;
       actions.updatePosition(state.position.x, newY);
     }
     animationFrameRef.current = requestAnimationFrame(animate);
-  }, [state.isPlaying, state.isWaitingForNext, state.isPaused, state.position, state.velocity]);
+  }, [state.isPlaying, state.isWaitingForNext, state.isPaused, state.position, state.velocity, state.speedSetting]);
 
   // Start animation loop
   useEffect(() => {
@@ -502,6 +502,8 @@ const KanaGame = () => {
         <Settings
           level={state.level}
           setLevel={actions.setLevel}
+          speedSetting={state.speedSetting}
+          setSpeedSetting={actions.setSpeedSetting}
           writingSystem={state.writingSystem}
           setWritingSystem={actions.setWritingSystem}
           showKanaDetails={showKanaDetails}

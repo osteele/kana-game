@@ -19,6 +19,7 @@ interface GameState {
   writingSystem: CharacterSet;
   choices: Kana[];
   characterStats: KanaStatsMap;
+  speedSetting: 'slow' | 'normal' | 'fast';
 }
 
 // Define action types
@@ -41,7 +42,8 @@ type GameAction =
       currentKana: Kana;
       choices: Kana[];
     }
-  };
+  }
+  | { type: 'SET_SPEED_SETTING'; payload: 'slow' | 'normal' | 'fast' };
 
 // Create initial state
 const initialState: GameState = {
@@ -57,7 +59,8 @@ const initialState: GameState = {
   feedback: null,
   writingSystem: 'hiragana',
   choices: [],
-  characterStats: {}
+  characterStats: {},
+  speedSetting: 'normal',
 };
 
 // Create reducer
@@ -142,10 +145,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         currentKana: action.payload.currentKana,
         choices: action.payload.choices,
         position: { x: 50, y: 0 },
-        velocity: 0.1,
+        velocity: getInitialVelocity(state.speedSetting),
         feedback: null,
         isWaitingForNext: false
       };
+
+    case 'SET_SPEED_SETTING':
+      return { ...state, speedSetting: action.payload };
 
     default:
       return state;
@@ -222,6 +228,10 @@ export function useGameState() {
         payload: { currentKana: kana, choices }
       });
     }, [state.level, state.writingSystem]),
+
+    setSpeedSetting: useCallback((speed: 'slow' | 'normal' | 'fast') => {
+      dispatch({ type: 'SET_SPEED_SETTING', payload: speed });
+    }, []),
   };
 
   return { state, actions, dispatch };
@@ -264,4 +274,18 @@ const generateChoices = (
   ].slice(0, 4);
 
   return [...distractors, kana].sort(() => Math.random() - 0.5);
+};
+
+const getInitialVelocity = (speedSetting: 'slow' | 'normal' | 'fast'): number => {
+  switch (speedSetting) {
+    case 'slow': return 0.05;
+    case 'normal': return 0.1;
+    case 'fast': return 0.15;
+  }
+};
+
+export const ACCELERATION_RATES = {
+  slow: 0.0025,
+  normal: 0.005,
+  fast: 0.01
 };

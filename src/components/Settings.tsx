@@ -3,6 +3,7 @@ import { HIRAGANA_SETS } from '../data/hiragana';
 import { CharacterSet } from '../data/kana';
 import { getKanaSets } from "../data/katakana";
 import Gojuuon from './Gojuuon';
+import { ACCELERATION_RATES } from '../hooks/useGameState';
 
 const Settings = ({
   level,
@@ -10,7 +11,9 @@ const Settings = ({
   writingSystem,
   setWritingSystem,
   showKanaDetails,
-  setShowKanaDetails
+  setShowKanaDetails,
+  speedSetting,
+  setSpeedSetting
 } : {
   level: number;
   setLevel: (level: number) => void;
@@ -18,6 +21,8 @@ const Settings = ({
   setWritingSystem: (writingSystem: CharacterSet) => void;
   showKanaDetails: boolean;
   setShowKanaDetails: (showKanaDetails: boolean) => void;
+  speedSetting: 'slow' | 'normal' | 'fast';
+  setSpeedSetting: (speed: 'slow' | 'normal' | 'fast') => void;
 }) => {
   const getCharacterStatus = (romaji: string) => {
     const currentKana = getKanaSets(level, writingSystem).find(k => k.romaji === romaji);
@@ -59,6 +64,24 @@ const Settings = ({
               <option value="katakana">Katakana</option>
               <option value="both">Both</option>
             </select>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <label>Game Speed:</label>
+            <select
+              value={speedSetting}
+              onChange={(e) => setSpeedSetting(e.target.value as 'slow' | 'normal' | 'fast')}
+              className="p-2 border rounded"
+            >
+              <option value="slow">Slow</option>
+              <option value="normal">Normal</option>
+              <option value="fast">Fast</option>
+            </select>
+            <span className="text-sm text-gray-500">
+              {speedSetting === 'slow' && '(Beginner)'}
+              {speedSetting === 'normal' && '(Intermediate)'}
+              {speedSetting === 'fast' && '(Advanced)'}
+            </span>
           </div>
         </div>
 
