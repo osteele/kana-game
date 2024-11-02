@@ -422,7 +422,7 @@ const KanaGame = () => {
   }, []);
 
   return (
-    <div className="w-full h-full max-w-2xl mx-auto p-4 select-none">
+    <div className="w-full h-full max-w-2xl mx-auto p-2 sm:p-4 select-none">
       {/* Add particle containers */}
       <div id="successParticles" ref={successParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
       <div id="failureParticles" ref={failureParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
@@ -522,7 +522,7 @@ const KanaGame = () => {
           </button>
         </div>
       ) : (
-        <div className="relative w-full h-96 border-2 border-gray-200 rounded overflow-hidden">
+        <div className="relative w-full h-[500px] border-2 border-gray-200 rounded overflow-hidden">
           {/* Falling Kana */}
           {state.currentKana && (
             <div
