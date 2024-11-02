@@ -63,9 +63,11 @@ npm run dev
 - Use `←` and `→` arrow keys to move left and right
 - Click or tap on a column to move there
 - Click or tap on the current column to drop instantly
-- Press `Space` to start next round
+- Press `Space` to drop the character or start the next round
+- Press `?` to show help
+- Press `Esc` to close help
 - Use the pause button (⏸️) to take a break
-- Access help (?) and settings (⚙️) from the top-right menu
+- Access settings (⚙️) from the top-right menu
 
 ## Project Structure
 

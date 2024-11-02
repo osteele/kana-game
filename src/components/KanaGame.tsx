@@ -17,11 +17,13 @@ const KanaGame = () => {
   const [currentKana, setCurrentKana] = useState<Kana | null>(null);
   const [position, setPosition] = useState({ x: 50, y: 0 });
   const [velocity, setVelocity] = useState(0);
+  const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [choices, setChoices] = useState<Kana[]>([]);
   const [feedback, setFeedback] = useState<{ isCorrect: boolean; message: string } | null>(null);
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [previousPauseState, setPreviousPauseState] = useState(false);
   const timerRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
@@ -132,7 +134,7 @@ const KanaGame = () => {
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (!isPlaying || isWaitingForNext) return;
+      if (!isPlaying) return;
 
       switch (e.key) {
         case 'ArrowLeft':
@@ -150,6 +152,11 @@ const KanaGame = () => {
         case ' ':
           if (isWaitingForNext) {
             initializeGame();
+          } else {
+            setPosition(prev => ({
+              ...prev,
+              y: 80
+            }));
           }
           break;
         default:
@@ -206,20 +213,88 @@ const KanaGame = () => {
 
   // Modify settings toggle to handle pausing
   const toggleSettings = () => {
-    if (!showSettings && isPlaying && !isPaused) {
+    if (!showSettings) {
+      // About to show settings
+      setPreviousPauseState(isPaused);
       setIsPaused(true);
+    } else {
+      // About to hide settings
+      setIsPaused(previousPauseState);
     }
     setShowSettings(!showSettings);
   };
 
-  const [showHelp, setShowHelp] = useState(false);
-
   const toggleHelp = () => {
-    if (!showHelp && isPlaying && !isPaused) {
+    if (!showHelp) {
+      // About to show help
+      setPreviousPauseState(isPaused);
       setIsPaused(true);
+    } else {
+      // About to hide help
+      setIsPaused(previousPauseState);
     }
     setShowHelp(!showHelp);
   };
+
+  // Add global keyboard handlers for help
+  useEffect(() => {
+    const handleGlobalKeys = (e) => {
+      switch (e.key) {
+        case '?':
+          if (!showSettings) {
+            toggleHelp();
+          }
+          break;
+        case 'Escape':
+          if (showHelp) {
+            toggleHelp();
+          } else if (showSettings) {
+            toggleSettings();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeys);
+    return () => window.removeEventListener('keydown', handleGlobalKeys);
+  }, []);
+
+  // Game-specific keyboard handler
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isPlaying || showHelp) return; // Don't handle game controls if help is showing
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          setPosition(prev => ({
+            ...prev,
+            x: Math.max(0, prev.x - 5)
+          }));
+          break;
+        case 'ArrowRight':
+          setPosition(prev => ({
+            ...prev,
+            x: Math.min(100, prev.x + 5)
+          }));
+          break;
+        case ' ':
+          if (isWaitingForNext) {
+            initializeGame();
+          } else {
+            setPosition(prev => ({
+              ...prev,
+              y: 80
+            }));
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, isWaitingForNext, initializeGame, showHelp]);
 
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-4 select-none">
@@ -270,7 +345,9 @@ const KanaGame = () => {
                 <li>Use <span className="font-mono">←</span> and <span className="font-mono">→</span> arrow keys to move left and right</li>
                 <li>Click or tap on a column to move there</li>
                 <li>Click or tap on the current column to drop instantly</li>
-                <li>Press <span className="font-mono">Space</span> to start next round</li>
+                <li>Press <span className="font-mono">Space</span> to drop the character or start the next round</li>
+                <li>Press <span className="font-mono">?</span> to show this help</li>
+                <li>Press <span className="font-mono">Esc</span> to close this help</li>
               </ul>
 
               <div className="font-bold mt-2">Tips:</div>
@@ -317,7 +394,7 @@ const KanaGame = () => {
           {/* Falling Kana */}
           {currentKana && (
             <div
-              className="absolute text-4xl transform -translate-x-1/2"
+              className="absolute text-4xl transform -translate-x-1/2 z-10"
               style={{
                 left: `${position.x}%`,
                 top: `${position.y}%`,
