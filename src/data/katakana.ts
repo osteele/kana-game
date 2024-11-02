@@ -35,7 +35,7 @@ const HIRAGANA_TO_KATAKANA = {
 
 // Generate katakana sets
 export const generateKatakanaSet = (hiraganaSet: Kana[]): Kana[] => {
-  return hiraganaSet.map(({ hiragana, romaji }) => ({
+  return hiraganaSet.map(({ hiragana: hiragana, romaji }) => ({
     hiragana: HIRAGANA_TO_KATAKANA[hiragana],
     romaji,
   }));
@@ -51,14 +51,14 @@ export const getKanaSets = (level: number, writingSystem: CharacterSet = 'hiraga
     case 'hiragana':
       return hiraganaUpToLevel;
     case 'katakana':
-      return hiraganaUpToLevel.map(({ hiragana, romaji }) => ({
+      return hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
         hiragana: HIRAGANA_TO_KATAKANA[hiragana],
         romaji,
       }));
     case 'both':
       return [
         ...hiraganaUpToLevel,
-        ...hiraganaUpToLevel.map(({ hiragana, romaji }) => ({
+        ...hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
           hiragana: HIRAGANA_TO_KATAKANA[hiragana],
           romaji,
         })),

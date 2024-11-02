@@ -5,6 +5,17 @@ import { CharacterSet, Kana } from "../data/kana";
 import { getKanaSets } from "../data/katakana";
 import Settings from './Settings';
 
+// Add new interface for character stats
+interface KanaStats {
+  correct: number;
+  wrong: number;
+  lastSeen?: number;
+}
+
+interface KanaStatsMap {
+  [key: string]: KanaStats;
+}
+
 const KanaGame = () => {
   // Game state
   const [level, setLevel] = useState(() => {
@@ -29,6 +40,17 @@ const KanaGame = () => {
 
   // Add writing system state
   const [writingSystem, setWritingSystem] = useState<CharacterSet>('hiragana');
+
+  // Add stats state
+  const [characterStats, setCharacterStats] = useState<KanaStatsMap>(() => {
+    const saved = localStorage.getItem('kanaGameStats');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Update stats storage effect
+  useEffect(() => {
+    localStorage.setItem('kanaGameStats', JSON.stringify(characterStats));
+  }, [characterStats]);
 
   // Initialize or reset game state
   const initializeGame = useCallback(() => {
@@ -109,6 +131,20 @@ const KanaGame = () => {
     if (position.y >= 80 && !isWaitingForNext && currentKana) {
       const column = Math.floor((position.x / 100) * 5);
       const isCorrect = choices[column].romaji === currentKana.romaji;
+
+      // Update character stats
+      setCharacterStats(prev => {
+        const key = `${currentKana.hiragana}`;
+        const existing = prev[key] || { correct: 0, wrong: 0 };
+        return {
+          ...prev,
+          [key]: {
+            correct: existing.correct + (isCorrect ? 1 : 0),
+            wrong: existing.wrong + (isCorrect ? 0 : 1),
+            lastSeen: Date.now()
+          }
+        };
+      });
 
       setScore(prev => ({
         correct: prev.correct + (isCorrect ? 1 : 0),
