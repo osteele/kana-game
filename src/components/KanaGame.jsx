@@ -1,4 +1,4 @@
-import { Clock, Settings as SettingsIcon } from 'lucide-react';
+import { Clock, Settings as SettingsIcon, HelpCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { HIRAGANA_SETS } from '../data/hiragana';
 import { getKanaSets } from "../data/katakana";
@@ -15,15 +15,14 @@ const KanaGame = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentKana, setCurrentKana] = useState(null);
   const [position, setPosition] = useState({ x: 50, y: 0 });
+  const [velocity, setVelocity] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
-  const [gameSpeed, setGameSpeed] = useState(5000); // Time for kana to fall (ms)
   const [choices, setChoices] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
   const timerRef = useRef(null);
-  const gameLoopRef = useRef(null);
   const animationFrameRef = useRef(null);
 
   // Add writing system state
@@ -47,6 +46,7 @@ const KanaGame = () => {
     setCurrentKana(kana);
     setChoices(allChoices);
     setPosition({ x: 50, y: 0 });
+    setVelocity(0);
     setFeedback(null);
     setIsWaitingForNext(false);
   }, [level]);
@@ -69,13 +69,22 @@ const KanaGame = () => {
   // Handle animation frame updates for falling kana
   const animate = useCallback(() => {
     if (isPlaying && !isWaitingForNext && !isPaused) {
-      setPosition(prev => ({
-        ...prev,
-        y: prev.y + (100 / (gameSpeed / 16.67)) * (1 + prev.y / 100)
-      }));
+      setPosition(prev => {
+        // Base speed (pixels per frame)
+        const newVelocity = (velocity + .1) * 2;
+        setVelocity(newVelocity);
+        // Calculate new position
+        const newY = prev.y + newVelocity;
+
+        // Cap the maximum position at 80 to prevent overflow
+        return {
+          ...prev,
+          y: Math.min(newY, 80)
+        };
+      });
     }
     animationFrameRef.current = requestAnimationFrame(animate);
-  }, [isPlaying, gameSpeed, isWaitingForNext, isPaused]);
+  }, [isPlaying, isWaitingForNext, isPaused]);
 
   // Start animation loop
   useEffect(() => {
@@ -199,6 +208,15 @@ const KanaGame = () => {
     setShowSettings(!showSettings);
   };
 
+  const [showHelp, setShowHelp] = useState(false);
+
+  const toggleHelp = () => {
+    if (!showHelp && isPlaying && !isPaused) {
+      setIsPaused(true);
+    }
+    setShowHelp(!showHelp);
+  };
+
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-4 select-none">
       {/* Header */}
@@ -220,6 +238,13 @@ const KanaGame = () => {
             </button>
           )}
           <button
+            onClick={toggleHelp}
+            className="p-2 rounded hover:bg-gray-100"
+            aria-label="Help"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+          <button
             onClick={toggleSettings}
             className="p-2 rounded hover:bg-gray-100"
           >
@@ -227,6 +252,39 @@ const KanaGame = () => {
           </button>
         </div>
       </div>
+
+      {/* Add Help Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full m-4">
+            <h2 className="text-xl font-bold mb-4">How to Play</h2>
+            <div className="space-y-3">
+              <p>Match the falling kana character with its correct romaji pronunciation.</p>
+
+              <div className="font-bold mt-2">Controls:</div>
+              <ul className="list-disc pl-5">
+                <li>Use <span className="font-mono">←</span> and <span className="font-mono">→</span> arrow keys to move left and right</li>
+                <li>Click or tap on a column to move there</li>
+                <li>Click or tap on the current column to drop instantly</li>
+                <li>Press <span className="font-mono">Space</span> to start next round</li>
+              </ul>
+
+              <div className="font-bold mt-2">Tips:</div>
+              <ul className="list-disc pl-5">
+                <li>The game pauses automatically when opening settings</li>
+                <li>Use the pause button (⏸️) to take a break</li>
+                <li>Practice with easier levels first to learn the characters</li>
+              </ul>
+            </div>
+            <button
+              onClick={toggleHelp}
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Settings Panel */}
       {showSettings && (

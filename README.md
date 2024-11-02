@@ -59,6 +59,14 @@ npm run dev
   - The game saves your progress locally
   - Access settings via the gear icon to change difficulty level
 
+## Controls
+- Use `←` and `→` arrow keys to move left and right
+- Click or tap on a column to move there
+- Click or tap on the current column to drop instantly
+- Press `Space` to start next round
+- Use the pause button (⏸️) to take a break
+- Access help (?) and settings (⚙️) from the top-right menu
+
 ## Project Structure
 
 ```
