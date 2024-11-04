@@ -1,4 +1,3 @@
-import React from 'react'
 import KanaGame from './components/KanaGame'
 
 function App() {

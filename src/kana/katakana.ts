@@ -1,7 +1,7 @@
 import { Kana } from "./kana";
 
 // Mapping for hiragana to katakana conversion
-export const HIRAGANA_TO_KATAKANA = {
+export const HIRAGANA_TO_KATAKANA: Record<string, string> = {
   'あ': 'ア', 'い': 'イ', 'う': 'ウ', 'え': 'エ', 'お': 'オ',
   'か': 'カ', 'き': 'キ', 'く': 'ク', 'け': 'ケ', 'こ': 'コ',
   'さ': 'サ', 'し': 'シ', 'す': 'ス', 'せ': 'セ', 'そ': 'ソ',

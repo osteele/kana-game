@@ -1,4 +1,3 @@
-import React from 'react';
 import { HIRAGANA_SETS } from '../kana/hiragana';
 import { CharacterSet, getKanaSets } from '../kana/kana';
 import Gojuuon from './Gojuuon';

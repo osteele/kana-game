@@ -1,10 +1,12 @@
 import { HIRAGANA_SETS } from "./hiragana";
 import { HIRAGANA_TO_KATAKANA } from "./katakana";
 
+export type CharacterSet = 'hiragana' | 'katakana' | 'both';
+
 export type Kana = {
   hiragana: string;
   romaji: string;
-}; export type CharacterSet = 'hiragana' | 'katakana' | 'both';
+};
 
 export const basicKana = [
   // あ行 (a row)
@@ -148,13 +150,6 @@ export const compoundKana = [
   { romaji: 'ryu', hiragana: 'りゅ', katakana: 'リュ' },
   { romaji: 'ryo', hiragana: 'りょ', katakana: 'リョ' },
 ];
-
-// Helper functions to check character types
-const isBasic = (char: string) => 'あいうえおんアイウエオン'.includes(char);
-const isCompound = (char: string) => char.length > 1;
-const isDakuten = (char: string) => 'がぎぐげござじずぜぞだぢづでどばびぶべぼガギグゲゴザジズゼゾダヂヅデドバビブベボ'.includes(char);
-const isHandakuten = (char: string) => 'ぱぴぷぺぽパピプペポ'.includes(char);
-const isSmallTsu = (char: string) => char === 'っッ';
 
 // Sets of visually similar characters
 export const similarHiragana = [

@@ -1,5 +1,5 @@
 import { Clock, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ISourceOptions } from "tsparticles-engine";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
@@ -134,11 +134,11 @@ const useGameAudio = (): GameSound => {
 };
 
 const KanaGame = () => {
-  const { state, actions, dispatch } = useGameState();
+  const { state, actions } = useGameState();
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [previousPauseState, setPreviousPauseState] = useState(false);
-  const timerRef = useRef<number | null>(null);
+  const [_previousPauseState, setPreviousPauseState] = useState(false);
+  const timerRef = useRef<Timer | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
   const [characterStats, setCharacterStats] = useState<KanaStatsMap>(() => {
@@ -251,10 +251,10 @@ const KanaGame = () => {
               life: { duration: 3 },
             },
           }).then((container) => {
-              setTimeout(() => {
-                container?.destroy();
-              }, 5000);
-            });
+            setTimeout(() => {
+              container?.destroy();
+            }, 5000);
+          });
 
           actions.handleAnswer(true, `Round Complete! Score: ${state.score.correct}`);
 
@@ -339,7 +339,7 @@ const KanaGame = () => {
   }, [state.isPlaying, state.isWaitingForNext, state.position]);
 
   // Handle column click/tap
-  const handleColumnClick = (index) => {
+  const handleColumnClick = (index: number) => {
     if (!state.isPlaying || state.isWaitingForNext || state.isPaused) return;
     const targetX = (index * 20) + 10; // 20% per column, centered at 10%
 
@@ -360,7 +360,7 @@ const KanaGame = () => {
     initializeGame();
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -400,7 +400,7 @@ const KanaGame = () => {
 
   // Add global keyboard handlers for help
   useEffect(() => {
-    const handleGlobalKeys = (e) => {
+    const handleGlobalKeys = (e: KeyboardEvent) => {
       switch (e.key) {
         case '?':
           if (!showSettings) {
