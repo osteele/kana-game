@@ -159,21 +159,53 @@ export const compoundKana = [
 // Sets of visually similar characters
 export const similarHiragana = [
   ['あ', 'お'],
-  ['は', 'ほ'],
-  ['ぬ', 'め'],
-  ['わ', 'れ'],
-  ['ね', 'れ'],
-  ['る', 'ろ'],
+  ['い', 'り'],
   ['き', 'さ'],
+  ['け', 'は'],
+  ['さ', 'ち'],
+  ['す', 'ぬ'],
+  ['つ', 'し'],
+  ['つ', 'う'],
+  ['な', 'た'],
+  ['に', 'こ'],
+  ['ぬ', 'め'],
+  ['ね', 'れ'],
+  ['の', 'ぬ'],
+  ['は', 'ほ'],
+  ['め', 'ぬ'],
+  ['る', 'ろ'],
+  ['わ', 'れ'],
 ];
 
 export const similarKatakana = [
-  ['ソ', 'ン'],
-  ['シ', 'ツ'],
-  ['ノ', 'メ'],
   ['ウ', 'フ'],
-  ['カ', 'カ'],
+  ['シ', 'ツ', 'ソ', 'ン'],
+  ['ノ', 'ソ', 'ン'],
+  ['ス', 'ヌ'],
+  ['チ', 'セ'],
   ['チ', 'テ'],
+  ['テ', 'ナ'],
+  ['ノ', 'フ'],
+  ['ノ', 'メ'],
+  ['メ', 'ヌ'],
+  ['ワ', 'ク'],
+];
+
+export const similarKana = [
+  ...similarHiragana,
+  ...similarKatakana,
+  ['く', 'ク'],
+  ['せ', 'サ'],
+  ['さ', 'サ'],
+  ['き', 'キ'],
+  ['り', 'リ'],
+  ['ち', 'チ'],
+  ['に', 'ニ'],
+  ['の', 'ノ'],
+];
+
+export const identicalKana = [
+  ['へ', 'ヘ'],
 ];
 
 // Helper function to determine if a character is hiragana
@@ -195,28 +227,27 @@ export const isKatakana = (char: string): boolean => {
 };
 
 // Function to get visually similar characters
-export const getSimilarCharacters = (char: string): string[] => {
+export const getSimilarCharacters = (char: string, allowOppositeSet: boolean = false): string[] => {
   // Handle compound characters
   if (char.length > 1) {
     const baseChar = char[0];
     const suffix = char.slice(1);
-    const similarBase = getSimilarCharacters(baseChar);
+    const similarBase = getSimilarCharacters(baseChar, allowOppositeSet);
     return similarBase.map(c => c + suffix);
   }
 
-  // Check hiragana similarities
-  const hiraganaSet = similarHiragana.find(set => set.includes(char));
-  if (hiraganaSet) {
-    return hiraganaSet.filter(c => c !== char);
+  let similarSets: string[][] = [];
+
+  if (allowOppositeSet) {
+    similarSets = similarKana.filter(set => set.includes(char));
+  } else if (isHiragana(char)) {
+    similarSets = similarHiragana.filter(set => set.includes(char));
+  } else if (isKatakana(char)) {
+    similarSets = similarKatakana.filter(set => set.includes(char));
   }
 
-  // Check katakana similarities
-  const katakanaSet = similarKatakana.find(set => set.includes(char));
-  if (katakanaSet) {
-    return katakanaSet.filter(c => c !== char);
-  }
-
-  return []; // Return empty array if no similar characters found
+  // Merge all sets and remove duplicates and the original character
+  return [...new Set(similarSets.flat())].filter(c => c !== char);
 };
 
 // Get combined sets based on writing system preference
