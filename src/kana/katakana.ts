@@ -1,8 +1,7 @@
-import { HIRAGANA_SETS } from "./hiragana";
-import { CharacterSet, Kana } from "./kana";
+import { Kana } from "./kana";
 
 // Mapping for hiragana to katakana conversion
-const HIRAGANA_TO_KATAKANA = {
+export const HIRAGANA_TO_KATAKANA = {
   'あ': 'ア', 'い': 'イ', 'う': 'ウ', 'え': 'エ', 'お': 'オ',
   'か': 'カ', 'き': 'キ', 'く': 'ク', 'け': 'ケ', 'こ': 'コ',
   'さ': 'サ', 'し': 'シ', 'す': 'ス', 'せ': 'セ', 'そ': 'ソ',
@@ -39,31 +38,4 @@ export const generateKatakanaSet = (hiraganaSet: Kana[]): Kana[] => {
     hiragana: HIRAGANA_TO_KATAKANA[hiragana],
     romaji,
   }));
-};
-
-// Get combined sets based on writing system preference
-export const getKanaSets = (level: number, writingSystem: CharacterSet = 'hiragana'): Kana[] => {
-  const hiraganaUpToLevel = Object.entries(HIRAGANA_SETS)
-    .filter(([lvl]) => Number(lvl) <= level)
-    .flatMap(([_, set]) => set);
-
-  switch (writingSystem) {
-    case 'hiragana':
-      return hiraganaUpToLevel;
-    case 'katakana':
-      return hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
-        hiragana: HIRAGANA_TO_KATAKANA[hiragana],
-        romaji,
-      }));
-    case 'both':
-      return [
-        ...hiraganaUpToLevel,
-        ...hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
-          hiragana: HIRAGANA_TO_KATAKANA[hiragana],
-          romaji,
-        })),
-      ];
-    default:
-      return hiraganaUpToLevel;
-  }
 };

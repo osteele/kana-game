@@ -106,14 +106,6 @@ bun run build
 npm run build
 ```
 
-## Contributing
-
-Feel free to submit issues and enhancement requests!
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
-
 ## Future Enhancements
 
 Planned features and improvements:
@@ -125,3 +117,15 @@ Planned features and improvements:
 - Customizable game speed
 - Challenge modes
 - Multi-language support
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## Acknowledgements
+
+Written with [Claude](https://www.anthropic.com/claude) 🤖 and [Cursor](https://www.cursor.com) ✨

@@ -1,9 +1,7 @@
 import React from 'react';
-import { HIRAGANA_SETS } from '../data/hiragana';
-import { CharacterSet } from '../data/kana';
-import { getKanaSets } from "../data/katakana";
+import { HIRAGANA_SETS } from '../kana/hiragana';
+import { CharacterSet, getKanaSets } from '../kana/kana';
 import Gojuuon from './Gojuuon';
-import { ACCELERATION_RATES } from '../hooks/useGameState';
 
 const Settings = ({
   level,

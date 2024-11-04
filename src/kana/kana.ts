@@ -1,3 +1,6 @@
+import { HIRAGANA_SETS } from "./hiragana";
+import { HIRAGANA_TO_KATAKANA } from "./katakana";
+
 export type Kana = {
   hiragana: string;
   romaji: string;
@@ -214,4 +217,31 @@ export const getSimilarCharacters = (char: string): string[] => {
   }
 
   return []; // Return empty array if no similar characters found
+};
+
+// Get combined sets based on writing system preference
+export const getKanaSets = (level: number, writingSystem: CharacterSet = 'hiragana'): Kana[] => {
+  const hiraganaUpToLevel = Object.entries(HIRAGANA_SETS)
+    .filter(([lvl]) => Number(lvl) <= level)
+    .flatMap(([_, set]) => set);
+
+  switch (writingSystem) {
+    case 'hiragana':
+      return hiraganaUpToLevel;
+    case 'katakana':
+      return hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
+        hiragana: HIRAGANA_TO_KATAKANA[hiragana],
+        romaji,
+      }));
+    case 'both':
+      return [
+        ...hiraganaUpToLevel,
+        ...hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
+          hiragana: HIRAGANA_TO_KATAKANA[hiragana],
+          romaji,
+        })),
+      ];
+    default:
+      return hiraganaUpToLevel;
+  }
 };

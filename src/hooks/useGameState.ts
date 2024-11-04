@@ -1,8 +1,6 @@
 import { useCallback, useReducer } from 'react';
-import { CharacterSet, getSimilarCharacters, Kana } from '../data/kana';
+import { CharacterSet, getKanaSets, getSimilarCharacters, Kana } from '../kana/kana';
 import { KanaStatsMap } from '../stats';
-import { HIRAGANA_SETS } from '../data/hiragana';
-import { getKanaSets } from '../data/katakana';
 
 // Define state interface
 interface GameState {
@@ -215,10 +213,7 @@ export function useGameState() {
     }, []),
 
     initializeRound: useCallback(() => {
-      const currentSet = state.writingSystem === 'hiragana'
-        ? HIRAGANA_SETS[state.level]
-        : getKanaSets(state.level, state.writingSystem);
-
+      const currentSet = getKanaSets(state.level, state.writingSystem);
       const kana = currentSet[Math.floor(Math.random() * currentSet.length)];
       const similarChars = getSimilarCharacters(kana.hiragana);
       const choices = generateChoices(kana, state.level, state.writingSystem, similarChars);
@@ -243,17 +238,14 @@ const generateChoices = (
   writingSystem: CharacterSet,
   similarChars: string[]
 ): Kana[] => {
-  // Move the choice generation logic here
-  const allKana = writingSystem === 'hiragana'
-    ? Object.values(HIRAGANA_SETS).flat()
-    : getKanaSets(Object.keys(HIRAGANA_SETS).length, writingSystem);
+  const allKana = getKanaSets(level, writingSystem);
 
   const visuallySimularKana = similarChars
     .map(char => allKana.find(k => k.hiragana === char))
     .filter((k): k is Kana => k !== undefined);
 
   const availableKana = Array.from({ length: level }, (_, i) =>
-    writingSystem === 'hiragana' ? HIRAGANA_SETS[i + 1] : getKanaSets(i + 1, writingSystem)
+    getKanaSets(i + 1, writingSystem)
   ).flat();
 
   const wrongChoices = availableKana

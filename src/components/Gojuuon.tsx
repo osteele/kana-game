@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { basicKana, compoundKana, dakutenKana, handakutenKana } from '../data/kana';
+import { basicKana, compoundKana, dakutenKana, handakutenKana } from '../kana/kana';
 
 type KanaStatus = 'current' | 'previous' | 'upcoming' | null;
 
