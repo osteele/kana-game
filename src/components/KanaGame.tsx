@@ -4,7 +4,7 @@ import type { ISourceOptions } from "tsparticles-engine";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
-import { ACCELERATION_RATES, useGameState } from '../hooks/useGameState';
+import { ACCELERATION_RATES, LANDING_HEIGHT, useGameState } from '../hooks/useGameState';
 import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
 
@@ -230,7 +230,7 @@ const KanaGame = () => {
   }, []);
 
   useEffect(() => {
-    if (state.position.y >= 80 && !state.isWaitingForNext && state.currentKana) {
+    if (state.position.y >= LANDING_HEIGHT && !state.isWaitingForNext && state.currentKana) {
       const column = Math.floor((state.position.x / 100) * 5);
       const isCorrect = state.choices[column].romaji === state.currentKana.romaji;
       actions.handleAnswer(isCorrect, '');
@@ -516,10 +516,21 @@ const KanaGame = () => {
           {/* Falling Kana */}
           {state.currentKana && (
             <div
-              className="absolute text-4xl transform -translate-x-1/2 z-10"
+              className={`
+                absolute text-4xl transform -translate-x-1/2 z-20
+                ${state.isWaitingForNext && state.feedback?.isCorrect
+                  ? 'text-green-600'
+                  : state.isWaitingForNext
+                    ? 'text-red-600'
+                    : 'text-gray-800'
+                }
+                font-bold drop-shadow-md
+                transition-colors duration-300
+              `}
               style={{
                 left: `${state.position.x}%`,
-                top: `${state.position.y}%`,
+                top: `calc(${state.position.y}% - 3rem)`,
+                transform: 'translateX(-50%)',
               }}
             >
               {state.currentKana.text}
@@ -527,16 +538,33 @@ const KanaGame = () => {
           )}
 
           {/* Answer Columns */}
-          <div className="absolute bottom-0 w-full flex h-16">
-            {state.choices.map((choice, index) => (
-              <div
-                key={index}
-                onClick={() => handleColumnClick(index)}
-                className="flex-1 border-r last:border-r-0 border-gray-200 flex items-center justify-center hover:bg-gray-50 cursor-pointer"
-              >
-                {choice.romaji}
-              </div>
-            ))}
+          <div className="absolute bottom-0 left-0 right-0">
+            <div className="grid grid-cols-5 gap-4 relative p-4">
+              <div className="absolute inset-0 bg-gray-50 rounded-xl -z-10" />
+              {state.choices.map((choice, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleColumnClick(index)}
+                  className={`
+                    p-4 text-xl rounded-lg
+                    transition-all duration-300
+                    hover:scale-105 hover:shadow-lg
+                    active:scale-95
+                    ${state.isWaitingForNext ? 'pointer-events-none' : ''}
+                    ${state.isWaitingForNext && state.currentKana?.romaji === choice.romaji
+                      ? 'bg-green-100 animate-correct-answer ring-2 ring-green-500'
+                      : state.isWaitingForNext && index === Math.floor((state.position.x / 100) * 5)
+                        ? 'bg-red-100 animate-wrong-answer ring-2 ring-red-500'
+                        : index === Math.floor((state.position.x / 100) * 5)
+                          ? 'bg-blue-100'
+                          : 'bg-white hover:bg-blue-50'
+                    }
+                  `}
+                >
+                  {choice.romaji}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Feedback */}

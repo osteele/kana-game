@@ -173,7 +173,7 @@ export function useGameState() {
         type: 'UPDATE_POSITION',
         payload: {
           x: x !== undefined ? Math.max(0, Math.min(100, x)) : undefined,
-          y: y !== undefined ? Math.max(0, Math.min(80, y)) : undefined
+          y: y !== undefined ? Math.max(0, Math.min(LANDING_HEIGHT, y)) : undefined
         }
       });
     }, []),
@@ -281,3 +281,5 @@ export const ACCELERATION_RATES = {
   normal: 0.005,
   fast: 0.01
 };
+
+export const LANDING_HEIGHT = 85;
