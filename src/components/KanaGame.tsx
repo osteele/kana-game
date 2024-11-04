@@ -272,7 +272,7 @@ const KanaGame = () => {
 
       // Update character stats
       setCharacterStats(prev => {
-        const key = `${state.currentKana?.hiragana}`;
+        const key = `${state.currentKana?.text}`;
         const existing = prev[key] || { correct: 0, wrong: 0 };
         return {
           ...prev,
@@ -296,16 +296,6 @@ const KanaGame = () => {
       }, 2000);
     }
   }, [state.position.y, state.choices, state.currentKana, state.isPlaying, initializeGame, state.score]);
-
-  const showRoundCompleteEffect = useCallback(() => {
-    tsParticles.load("roundCompleteParticles", {
-      preset: "fireworks",
-      particles: {
-        number: { value: 10 },
-        life: { duration: 3 },
-      },
-    });
-  }, []);
 
   // Handle keyboard input
   useEffect(() => {
@@ -532,7 +522,7 @@ const KanaGame = () => {
                 top: `${state.position.y}%`,
               }}
             >
-              {state.currentKana.hiragana}
+              {state.currentKana.text}
             </div>
           )}
 

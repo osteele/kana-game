@@ -215,7 +215,7 @@ export function useGameState() {
     initializeRound: useCallback(() => {
       const currentSet = getKanaSets(state.level, state.writingSystem);
       const kana = currentSet[Math.floor(Math.random() * currentSet.length)];
-      const similarChars = getSimilarCharacters(kana.hiragana);
+      const similarChars = getSimilarCharacters(kana.text);
       const choices = generateChoices(kana, state.level, state.writingSystem, similarChars);
 
       dispatch({
@@ -241,7 +241,7 @@ const generateChoices = (
   const allKana = getKanaSets(level, writingSystem);
 
   const visuallySimularKana = similarChars
-    .map(char => allKana.find(k => k.hiragana === char))
+    .map(char => allKana.find(k => k.text === char))
     .filter((k): k is Kana => k !== undefined);
 
   const availableKana = Array.from({ length: level }, (_, i) =>

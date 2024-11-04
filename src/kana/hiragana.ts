@@ -76,7 +76,7 @@ export const HIRAGANA_SETS: Record<number, Kana[]> = Object.entries(HIRAGANA_LEV
   (sets, [level, characters]) => ({
     ...sets,
     [level]: characters.map(hiragana => ({
-      hiragana,
+      text: hiragana,
       romaji: HIRAGANA_TO_ROMAJI[hiragana]
     }))
   }),
@@ -89,7 +89,7 @@ export function findMissingHiragana(): string[] {
   const setHiragana = new Set(
     Object.values(HIRAGANA_SETS)
       .flat()
-      .map(k => k.hiragana)
+      .map(k => k.text)
   );
 
   // Convert HIRAGANA_FREQUENCY to Set for easier comparison

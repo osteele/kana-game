@@ -4,6 +4,11 @@ import { HIRAGANA_TO_KATAKANA } from "./katakana";
 export type CharacterSet = 'hiragana' | 'katakana' | 'both';
 
 export type Kana = {
+  text: string;
+  romaji: string;
+};
+
+export type Hiragana = {
   hiragana: string;
   romaji: string;
 };
@@ -224,15 +229,15 @@ export const getKanaSets = (level: number, writingSystem: CharacterSet = 'hiraga
     case 'hiragana':
       return hiraganaUpToLevel;
     case 'katakana':
-      return hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
-        hiragana: HIRAGANA_TO_KATAKANA[hiragana],
+      return hiraganaUpToLevel.map(({ text: hiragana, romaji }) => ({
+        text: HIRAGANA_TO_KATAKANA[hiragana],
         romaji,
       }));
     case 'both':
       return [
         ...hiraganaUpToLevel,
-        ...hiraganaUpToLevel.map(({ hiragana: hiragana, romaji }) => ({
-          hiragana: HIRAGANA_TO_KATAKANA[hiragana],
+        ...hiraganaUpToLevel.map(({ text: hiragana, romaji }) => ({
+          text: HIRAGANA_TO_KATAKANA[hiragana],
           romaji,
         })),
       ];

@@ -1,4 +1,4 @@
-import { Kana } from "./kana";
+import { Hiragana } from "./kana";
 
 // Mapping for hiragana to katakana conversion
 export const HIRAGANA_TO_KATAKANA: Record<string, string> = {
@@ -33,7 +33,7 @@ export const HIRAGANA_TO_KATAKANA: Record<string, string> = {
 };
 
 // Generate katakana sets
-export const generateKatakanaSet = (hiraganaSet: Kana[]): Kana[] => {
+export const generateKatakanaSet = (hiraganaSet: Hiragana[]): Hiragana[] => {
   return hiraganaSet.map(({ hiragana: hiragana, romaji }) => ({
     hiragana: HIRAGANA_TO_KATAKANA[hiragana],
     romaji,
