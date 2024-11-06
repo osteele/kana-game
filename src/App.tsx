@@ -1,11 +1,12 @@
-import KanaGame from './components/KanaGame'
+import ErrorBoundary from './components/ErrorBoundary';
+import KanaGame from './components/KanaGame';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <ErrorBoundary>
       <KanaGame />
-    </div>
-  )
+    </ErrorBoundary>
+  );
 }
 
-export default App
+export default App;

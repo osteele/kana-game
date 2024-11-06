@@ -9,6 +9,11 @@ import { ROUND_COMPLETE_THRESHOLD, useGameState } from '../hooks/useGameState';
 import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
 
+const ErrorAlert = ({ message }: { message: string }) => (
+  <div role="alert" className="alert alert-error mb-4">
+    <span>{message}</span>
+  </div>
+);
 
 const KanaGame = () => {
   const { state, actions } = useGameState();
@@ -21,8 +26,14 @@ const KanaGame = () => {
     return saved ? JSON.parse(saved) : {};
   });
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    localStorage.setItem('kanaGameStats', JSON.stringify(characterStats));
+    try {
+      localStorage.setItem('kanaGameStats', JSON.stringify(characterStats));
+    } catch (err) {
+      setError(`Failed to save game stats: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   }, [characterStats]);
 
   // Start game timer
@@ -60,16 +71,22 @@ const KanaGame = () => {
   const gameAudio = useGameAudio();
 
   const triggerParticleEffect = useCallback((type: ParticleEffectType) => {
-    const config = PARTICLE_CONFIGS[type];
-    const duration = type === 'roundComplete' ? 5000 : 2000;
+    try {
+      const config = PARTICLE_CONFIGS[type];
+      const duration = type === 'roundComplete' ? 5000 : 2000;
 
-    tsParticles.load(`${type}Particles`, config).then((container) => {
-      if (container) {
-        setTimeout(() => {
-          container.destroy();
-        }, duration);
-      }
-    });
+      tsParticles.load(`${type}Particles`, config).then((container) => {
+        if (container) {
+          setTimeout(() => {
+            container.destroy();
+          }, duration);
+        }
+      }).catch(err => {
+        setError(`Failed to load particle effects: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      });
+    } catch (err) {
+      setError(`Particle effect error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   }, []);
 
   // Add new state for speech synthesis
@@ -111,15 +128,19 @@ const KanaGame = () => {
 
   // Modify the speakKana function to respect the setting
   const speakKana = useCallback((text: string) => {
-    if (!speechEnabled) return;  // Early return if speech is disabled
-    if (speechSynth && !speechSynth.speaking) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      if (japaneseVoice) {
-        utterance.voice = japaneseVoice;
+    try {
+      if (!speechEnabled) return;
+      if (speechSynth && !speechSynth.speaking) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (japaneseVoice) {
+          utterance.voice = japaneseVoice;
+        }
+        utterance.lang = 'ja-JP';
+        utterance.rate = 0.8;
+        speechSynth.speak(utterance);
       }
-      utterance.lang = 'ja-JP';
-      utterance.rate = 0.8; // Slightly slower for clarity
-      speechSynth.speak(utterance);
+    } catch (err) {
+      setError(`Speech synthesis error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }, [speechSynth, japaneseVoice, speechEnabled]);
 
@@ -255,9 +276,14 @@ const KanaGame = () => {
   };
 
   const startGame = useCallback(() => {
-    gameAudio.initializeAudio();
-    actions.startGame();
-    actions.initializeRound();
+    try {
+      gameAudio.initializeAudio();
+      actions.startGame();
+      actions.initializeRound();
+      setError(null);
+    } catch (err) {
+      setError(`Failed to start game: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   }, [actions, gameAudio]);
 
   const formatTime = (seconds: number) => {
@@ -415,6 +441,8 @@ const KanaGame = () => {
           </button>
         </div>
       </div>
+
+      {error && <ErrorAlert message={error} />}
 
       {/* Help Modal */}
       {showHelp && (
