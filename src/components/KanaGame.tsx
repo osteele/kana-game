@@ -493,7 +493,7 @@ const KanaGame = () => {
                     : 'text-gray-800'
                 }
                 font-bold drop-shadow-md
-                transition-colors duration-300
+                transition-[left] duration-300 ease-in-out
               `}
               style={{
                 left: `${state.position.x}%`,
