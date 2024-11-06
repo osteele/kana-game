@@ -433,14 +433,15 @@ const KanaGame = () => {
         <Settings
           level={state.level}
           setLevel={actions.setLevel}
-          speedSetting={state.speedSetting}
-          setSpeedSetting={actions.setSpeedSetting}
           writingSystem={state.writingSystem}
           setWritingSystem={actions.setWritingSystem}
           showKanaDetails={showKanaDetails}
           setShowKanaDetails={setShowKanaDetails}
+          speedSetting={state.speedSetting}
+          setSpeedSetting={actions.setSpeedSetting}
           speechEnabled={speechEnabled}
           setSpeechEnabled={setSpeechEnabled}
+          onClose={toggleSettings}
         />
       )}
 
