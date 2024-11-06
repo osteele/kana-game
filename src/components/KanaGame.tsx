@@ -136,7 +136,6 @@ const KanaGame = () => {
         }
         utterance.lang = 'ja-JP';
         utterance.rate = 0.8;
-        console.log('speaking', text);
         speechSynth.speak(utterance);
       }
     } catch (err) {
@@ -574,12 +573,11 @@ const KanaGame = () => {
             <div
               className={`
                 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
-                text-xl font-bold serif
+                text-xl serif feedback-message
                 ${state.feedback.isCorrect ? 'text-green-500' : 'text-red-500'}
               `}
-            >
-              {state.feedback.message.en}
-            </div>
+              dangerouslySetInnerHTML={{ __html: state.feedback.message.en }}
+            />
           )}
 
         </div>

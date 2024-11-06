@@ -100,4 +100,4 @@ export function findMissingHiragana(): string[] {
 }
 
 // Log missing characters when module is loaded
-console.log('Characters in HIRAGANA_SETS but not in HIRAGANA_FREQUENCY:', findMissingHiragana());
+// console.log('Characters in HIRAGANA_SETS but not in HIRAGANA_FREQUENCY:', findMissingHiragana());

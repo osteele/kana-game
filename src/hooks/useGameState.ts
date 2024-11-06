@@ -199,7 +199,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const isCorrect = selectedChoice.romaji === state.currentKana.romaji;
         const lastCorrectKana = isCorrect ? state.currentKana.text : state.lastCorrectKana;
         const message = isCorrect ? {
-          en: `"${state.currentKana.romaji}" is correct!`,
+          en: `"${state.currentKana.romaji}" is the correct romaji!`,
           ja: `"${state.currentKana.text}"が正解です`
         } : {
           en: `"${selectedChoice.romaji}" is incorrect. The correct answer is "${state.currentKana.romaji}".`,
@@ -214,7 +214,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             character: state.currentKana.text,
             guess: selectedChoice,
             message: {
-              en: message.en.replace(/ ?"(.+?)" ?/g, '「$1」'),
+              en: message.en.replace(/"(.+?)"/g, '“<span class="romaji">$1</span>”'),
               ja: message.ja.replace(/"/g, ' ')
             }
           },
