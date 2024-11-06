@@ -5,7 +5,7 @@ import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
 import { useGameAudio } from '../effects/GameSound';
 import { PARTICLE_CONFIGS, ParticleEffectType } from '../effects/ParticleEffects';
-import { useGameState } from '../hooks/useGameState';
+import { LANDING_HEIGHT, useGameState } from '../hooks/useGameState';
 import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
 
@@ -286,6 +286,30 @@ const KanaGame = () => {
     };
   }, [state.isPlaying, actions]);
 
+  const [fallenCharacters, setFallenCharacters] = useState<Array<{ text: string, x: number, y: number, rotation: number, feedback: boolean }>>([]);
+
+  useEffect(() => {
+    if (state.feedback && state.currentKana) {
+      const column = Math.floor((state.position.x / 100) * 5);
+      const randomOffset = {
+        x: Math.random() * 10 - 5, // Random offset ±5%
+        y: Math.random() * 10 - 5  // Random offset ±5%
+      };
+
+      setFallenCharacters(prev => [...prev, {
+        text: state.currentKana!.text,
+        x: (column * 20) + 10 + randomOffset.x, // Center of column + random offset
+        y: LANDING_HEIGHT - 20, // 65, //LANDING_HEIGHT + 15 + randomOffset.y, // Near bottom + random offset
+        rotation: Math.random() * 60 - 30,
+        feedback: state.feedback?.isCorrect ?? false,
+      }]);
+    }
+  }, [state.feedback]);
+
+  useEffect(() => {
+    setFallenCharacters([]);
+  }, [state.level]);
+
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-2 sm:p-4 select-none">
       {/* Add particle containers */}
@@ -451,8 +475,24 @@ const KanaGame = () => {
               {state.feedback.message}
             </div>
           )}
+
         </div>
       )}
+
+      {/* Fallen Characters */}
+      {fallenCharacters.map((char, index) => (
+        <div
+          key={index}
+          className={`absolute text-2xl transition-opacity duration-300 ${char.feedback ? 'text-green-800' : 'text-red-800'}`}
+          style={{
+            left: `${char.x}%`,
+            top: `${char.y}%`,
+            transform: `translate(-50%, -50%) rotate(${char.rotation}deg)`,
+          }}
+        >
+          {char.text}
+        </div>
+      ))}
     </div>
   );
 };

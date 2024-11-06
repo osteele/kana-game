@@ -5,6 +5,7 @@ import { KanaStatsMap } from '../stats';
 // Define state interface
 interface GameState {
   level: number;
+  round: number;
   score: { correct: number; wrong: number };
   elapsedTime: number;
   isPlaying: boolean;
@@ -13,7 +14,7 @@ interface GameState {
   currentKana: Kana | null;
   position: { x: number; y: number };
   velocity: number;
-  feedback: { isCorrect: boolean; message: string } | null;
+  feedback: { isCorrect: boolean; character: string; message: string } | null;
   writingSystem: CharacterSet;
   choices: Kana[];
   characterStats: KanaStatsMap;
@@ -30,7 +31,7 @@ type GameAction =
   | { type: 'SET_VELOCITY'; payload: number }
   | { type: 'SET_LEVEL'; payload: number }
   | { type: 'UPDATE_SCORE'; payload: { isCorrect: boolean } }
-  | { type: 'SET_FEEDBACK'; payload: { isCorrect: boolean; message: string } | null }
+  | { type: 'SET_FEEDBACK'; payload: { isCorrect: boolean; character: string; message: string } | null }
   | { type: 'SET_WAITING'; payload: boolean }
   | { type: 'SET_KANA'; payload: { currentKana: Kana; choices: Kana[] } }
   | { type: 'SET_WRITING_SYSTEM'; payload: CharacterSet }
@@ -51,6 +52,7 @@ type GameAction =
 // Create initial state
 const initialState: GameState = {
   level: parseInt(localStorage.getItem('kanaGameLevel') || '1'),
+  round: 0,
   score: { correct: 0, wrong: 0 },
   elapsedTime: 0,
   isPlaying: false,
@@ -65,6 +67,22 @@ const initialState: GameState = {
   characterStats: {},
   speedSetting: 'normal',
   pauseStack: [],
+};
+
+export const LANDING_HEIGHT = 85;
+
+export const ACCELERATION_RATES = {
+  slow: 0.0025,
+  normal: 0.005,
+  fast: 0.01
+};
+
+const getInitialVelocity = (speedSetting: 'slow' | 'normal' | 'fast'): number => {
+  switch (speedSetting) {
+    case 'slow': return 0.05;
+    case 'normal': return 0.1;
+    case 'fast': return 0.15;
+  }
 };
 
 // Create reducer
@@ -147,6 +165,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         currentKana: action.payload.currentKana,
+        round: state.round + 1,
         choices: action.payload.choices,
         position: { x: 50, y: 0 },
         velocity: getInitialVelocity(state.speedSetting),
@@ -166,7 +185,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           isWaitingForNext: true,
           feedback: {
             isCorrect,
-            message: isCorrect ? 'Correct!' : `Incorrect. The answer was "${state.currentKana.romaji}"`
+            character: state.currentKana.text,
+            message: isCorrect ? 'Correct!' : `Incorrect. The answer was “${state.currentKana.romaji}”`
           },
           score: {
             correct: state.score.correct + (isCorrect ? 1 : 0),
@@ -266,7 +286,7 @@ export function useGameState() {
 
     handleAnswer: useCallback((isCorrect: boolean, message: string) => {
       dispatch({ type: 'UPDATE_SCORE', payload: { isCorrect } });
-      dispatch({ type: 'SET_FEEDBACK', payload: { isCorrect, message } });
+      dispatch({ type: 'SET_FEEDBACK', payload: { isCorrect, character: state.currentKana!.text, message } });
       dispatch({ type: 'SET_WAITING', payload: true });
     }, []),
 
@@ -361,19 +381,3 @@ const generateChoices = (
 
   return [...distractors, kana].sort(() => Math.random() - 0.5);
 };
-
-const getInitialVelocity = (speedSetting: 'slow' | 'normal' | 'fast'): number => {
-  switch (speedSetting) {
-    case 'slow': return 0.05;
-    case 'normal': return 0.1;
-    case 'fast': return 0.15;
-  }
-};
-
-export const ACCELERATION_RATES = {
-  slow: 0.0025,
-  normal: 0.005,
-  fast: 0.01
-};
-
-export const LANDING_HEIGHT = 85;
