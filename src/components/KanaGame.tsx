@@ -545,7 +545,7 @@ const KanaGame = () => {
                   key={index}
                   onClick={() => handleColumnClick(index)}
                   className={`
-                    p-4 text-xl rounded-lg
+                    relative p-4 text-xl rounded-lg
                     transition-all duration-300
                     hover:scale-105 hover:shadow-lg
                     active:scale-95
@@ -560,6 +560,9 @@ const KanaGame = () => {
                     }
                   `}
                 >
+                  <span className="hidden sm:block absolute bottom-1 left-2 text-xs font-mono text-gray-400">
+                    {index + 1}
+                  </span>
                   {choice.romaji}
                 </button>
               ))}
