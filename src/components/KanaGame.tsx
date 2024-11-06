@@ -5,7 +5,7 @@ import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
 import { useGameAudio } from '../effects/GameSound';
 import { PARTICLE_CONFIGS, ParticleEffectType } from '../effects/ParticleEffects';
-import { LANDING_HEIGHT, ROUND_COMPLETE_THRESHOLD, useGameState } from '../hooks/useGameState';
+import { ROUND_COMPLETE_THRESHOLD, useGameState } from '../hooks/useGameState';
 import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
 
@@ -280,14 +280,14 @@ const KanaGame = () => {
     if (state.feedback && state.currentKana) {
       const column = Math.floor((state.position.x / 100) * 5);
       const randomOffset = {
-        x: Math.random() * 10 - 5, // Random offset ±5%
-        y: Math.random() * 10 - 5  // Random offset ±5%
+        x: Math.random() * 10 - 5,
+        y: Math.random() * 10,
       };
 
       setFallenCharacters(prev => [...prev, {
         text: state.currentKana!.text,
         x: (column * 20) + 10 + randomOffset.x, // Center of column + random offset
-        y: LANDING_HEIGHT - 20, // 65, //LANDING_HEIGHT + 15 + randomOffset.y, // Near bottom + random offset
+        y: randomOffset.y,
         rotation: Math.random() * 60 - 30,
         feedback: state.feedback?.isCorrect ?? false,
       }]);
@@ -468,19 +468,21 @@ const KanaGame = () => {
       )}
 
       {/* Fallen Characters */}
-      {fallenCharacters.map((char, index) => (
-        <div
-          key={index}
-          className={`absolute text-2xl transition-opacity duration-300 ${char.feedback ? 'text-green-800' : 'text-red-800'}`}
-          style={{
-            left: `${char.x}%`,
-            top: `${char.y}%`,
-            transform: `translate(-50%, -50%) rotate(${char.rotation}deg)`,
-          }}
-        >
-          {char.text}
-        </div>
-      ))}
+      <div className="h-10 w-full relative">
+        {fallenCharacters.map((char, index) => (
+          <div
+            key={index}
+            className={`text-2xl w-5 h-5 absolute ${char.feedback ? 'text-green-800' : 'text-red-800'}`}
+            style={{
+              left: `${char.x}%`,
+              top: `${char.y}%`,
+              transform: `translate(-50%, -50%) rotate(${char.rotation}deg) translate(50%, 50%)`,
+            }}
+          >
+            {char.text}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
