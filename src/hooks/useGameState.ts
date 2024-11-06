@@ -18,6 +18,7 @@ interface GameState {
   choices: Kana[];
   characterStats: KanaStatsMap;
   speedSetting: 'slow' | 'normal' | 'fast';
+  pauseStack: boolean[];  // Stack of previous pause states
 }
 
 // Define action types
@@ -43,7 +44,9 @@ type GameAction =
   }
   | { type: 'SET_SPEED_SETTING'; payload: 'slow' | 'normal' | 'fast' }
   | { type: 'CHECK_LANDING' }
-  | { type: 'ANIMATE_FRAME' };
+  | { type: 'ANIMATE_FRAME' }
+  | { type: 'PUSH_PAUSE' }
+  | { type: 'POP_PAUSE' };
 
 // Create initial state
 const initialState: GameState = {
@@ -61,6 +64,7 @@ const initialState: GameState = {
   choices: [],
   characterStats: {},
   speedSetting: 'normal',
+  pauseStack: [],
 };
 
 // Create reducer
@@ -191,6 +195,24 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
 
+    case 'PUSH_PAUSE': {
+      return {
+        ...state,
+        pauseStack: [...state.pauseStack, state.isPaused],
+        isPaused: true,
+      };
+    }
+
+    case 'POP_PAUSE': {
+      const newStack = [...state.pauseStack];
+      const previousPauseState = newStack.pop() ?? false;
+      return {
+        ...state,
+        pauseStack: newStack,
+        isPaused: previousPauseState,
+      };
+    }
+
     default:
       return state;
   }
@@ -290,6 +312,14 @@ export function useGameState() {
 
     setSpeedSetting: useCallback((speed: 'slow' | 'normal' | 'fast') => {
       dispatch({ type: 'SET_SPEED_SETTING', payload: speed });
+    }, []),
+
+    pushPause: useCallback(() => {
+      dispatch({ type: 'PUSH_PAUSE' });
+    }, []),
+
+    popPause: useCallback(() => {
+      dispatch({ type: 'POP_PAUSE' });
     }, []),
   };
 

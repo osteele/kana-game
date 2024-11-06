@@ -1,4 +1,4 @@
-import { Clock, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
+import { Clock, HelpCircle, Pause, Play, Settings as SettingsIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
@@ -17,7 +17,6 @@ const KanaGame = () => {
   const { state, actions } = useGameState();
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [_previousPauseState, setPreviousPauseState] = useState(false);
   const timerRef = useRef<Timer | null>(null);
 
   const [characterStats, setCharacterStats] = useState<KanaStatsMap>(() => {
@@ -213,11 +212,10 @@ const KanaGame = () => {
   const toggleSettings = () => {
     if (!showSettings) {
       // About to show settings
-      setPreviousPauseState(state.isPaused);
-      actions.togglePause();
+      actions.pushPause();
     } else {
       // About to hide settings
-      actions.togglePause();
+      actions.popPause();
     }
     setShowSettings(!showSettings);
   };
@@ -225,11 +223,10 @@ const KanaGame = () => {
   const toggleHelp = () => {
     if (!showHelp) {
       // About to show help
-      setPreviousPauseState(state.isPaused);
-      actions.togglePause();
+      actions.pushPause();
     } else {
       // About to hide help
-      actions.togglePause();
+      actions.popPause();
     }
     setShowHelp(!showHelp);
   };
@@ -257,6 +254,38 @@ const KanaGame = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeys);
   }, []);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (state.isPlaying && document.hidden) {
+        actions.pushPause();
+      }
+    };
+
+    const handleFocus = () => {
+      if (state.isPlaying && document.hidden === false) {
+        actions.popPause();
+      }
+    };
+
+    const handleBlur = () => {
+      if (state.isPlaying) {
+        actions.pushPause();
+      }
+    };
+
+    // Add all event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    // Clean up
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [state.isPlaying, actions]);
+
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-2 sm:p-4 select-none">
       {/* Add particle containers */}
@@ -279,7 +308,7 @@ const KanaGame = () => {
               onClick={togglePause}
               className="p-2 rounded hover:bg-gray-100"
             >
-              {state.isPaused ? '▶️' : '⏸️'}
+              {state.isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
             </button>
           )}
           <button
