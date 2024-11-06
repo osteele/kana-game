@@ -194,20 +194,28 @@ const KanaGame = () => {
 
       switch (e.key) {
         case 'ArrowLeft':
+          if (state.isPaused) return;
           actions.updatePosition(
             Math.max(0, state.position.x - 5),
             state.position.y
           );
           break;
         case 'ArrowRight':
+          if (state.isPaused) return;
           actions.updatePosition(state.position.x + 5);
           break;
         case ' ':
-          actions.setPaused(false);
-          if (state.isWaitingForNext) {
-            actions.initializeRound();
-          } else {
-            actions.updatePosition(undefined, 80);
+          if (state.isPaused) {
+            actions.setPaused(false);
+            e.preventDefault(); // Prevent space from triggering twice
+            return;
+          }
+          if (!state.isPaused) {
+            if (state.isWaitingForNext) {
+              actions.initializeRound();
+            } else {
+              actions.updatePosition(undefined, 80);
+            }
           }
           break;
         default:
@@ -217,7 +225,7 @@ const KanaGame = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state.isPlaying, state.isWaitingForNext, state.position]);
+  }, [state.isPlaying, state.isWaitingForNext, state.position, state.isPaused]);
 
   // Handle column click/tap
   const handleColumnClick = (index: number) => {
@@ -249,8 +257,12 @@ const KanaGame = () => {
   };
 
   const togglePause = useCallback(() => {
-    actions.togglePause();
-  }, [actions]);
+    if (state.isPaused) {
+      actions.popPause();
+    } else {
+      actions.pushPause();
+    }
+  }, [actions, state.isPaused]);
 
   // Show kana details state
   const [showKanaDetails, setShowKanaDetails] = useState(false);
@@ -373,6 +385,7 @@ const KanaGame = () => {
             <button
               onClick={togglePause}
               className="p-2 rounded hover:bg-gray-100"
+              tabIndex={-1}
             >
               {state.isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
             </button>

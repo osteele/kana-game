@@ -228,12 +228,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'POP_PAUSE': {
-      const newStack = [...state.pauseStack];
-      const previousPauseState = newStack.pop() ?? false;
+      const pauseStack = [...state.pauseStack];
+      const isPaused = pauseStack.pop() ?? false;
       return {
         ...state,
-        pauseStack: newStack,
-        isPaused: previousPauseState,
+        pauseStack,
+        isPaused,
       };
     }
 
@@ -274,7 +274,7 @@ export function useGameState() {
       dispatch({ type: state.isPaused ? 'RESUME_GAME' : 'PAUSE_GAME' });
     }, [state.isPaused]),
 
-    setPaused: useCallback((paused: boolean) => {
+    setPaused: useCallback((paused: boolean = true) => {
       dispatch({ type: paused ? 'PAUSE_GAME' : 'RESUME_GAME' });
     }, []),
 
