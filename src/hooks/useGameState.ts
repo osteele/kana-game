@@ -183,6 +183,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const column = Math.floor((state.position.x / 100) * 5);
         const selectedChoice = state.choices[column];
         const isCorrect = selectedChoice.romaji === state.currentKana.romaji;
+        const message = isCorrect ? `"${state.currentKana.romaji}" is correct!` : `"${state.currentKana.romaji}" is incorrect. The correct answer is "${selectedChoice.romaji}".`;
         return {
           ...state,
           isWaitingForNext: true,
@@ -190,7 +191,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             isCorrect,
             character: state.currentKana.text,
             selectedKana: selectedChoice.text,
-            message: isCorrect ? 'Correct!' : `Incorrect. The answer was "${state.currentKana.romaji}"`
+            message: message.replace(/ ?"(.+?)" ?/g, '「$1」'),
           },
           score: {
             correct: state.score.correct + (isCorrect ? 1 : 0),
