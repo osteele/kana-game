@@ -25,6 +25,7 @@ interface GameState {
   characterStats: KanaStatsMap;
   speedSetting: 'slow' | 'normal' | 'fast';
   pauseStack: boolean[];  // Stack of previous pause states
+  lastCorrectKana: string | null;
 }
 
 // Define action types
@@ -79,6 +80,7 @@ const initialState: GameState = {
   characterStats: {},
   speedSetting: 'normal',
   pauseStack: [],
+  lastCorrectKana: null,
 };
 
 export const ROUND_COMPLETE_THRESHOLD = 10;
@@ -195,6 +197,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const column = Math.floor((state.position.x / 100) * 5);
         const selectedChoice = state.choices[column];
         const isCorrect = selectedChoice.romaji === state.currentKana.romaji;
+        const lastCorrectKana = isCorrect ? state.currentKana.text : state.lastCorrectKana;
         const message = isCorrect ? {
           en: `"${state.currentKana.romaji}" is correct!`,
           ja: `"${state.currentKana.text}"が正解です`
@@ -204,6 +207,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         };
         return {
           ...state,
+          lastCorrectKana,
           isWaitingForNext: true,
           feedback: {
             isCorrect,
@@ -353,16 +357,21 @@ export function useGameState() {
     }, []),
 
     initializeRound: useCallback(() => {
-      const currentSet = getKanaSets(state.level, state.writingSystem);
-      const kana = currentSet[Math.floor(Math.random() * currentSet.length)];
+      const currentSet = getKanaSets(state.level, state.writingSystem)
+        .filter(k => k.text !== state.lastCorrectKana);
+
+      // If we filtered out all characters, fall back to the full set
+      const availableSet = currentSet.length > 0 ? currentSet : getKanaSets(state.level, state.writingSystem);
+
+      const kana = availableSet[Math.floor(Math.random() * availableSet.length)];
       const similarChars = getSimilarCharacters(kana.text);
-      const choices = generateChoices(kana, state.level, state.writingSystem, similarChars);
+      const choices = generateChoices(kana, state.level, state.writingSystem, similarChars, state.lastCorrectKana);
 
       dispatch({
         type: 'INITIALIZE_ROUND',
         payload: { currentKana: kana, choices }
       });
-    }, [state.level, state.writingSystem]),
+    }, [state.level, state.writingSystem, state.lastCorrectKana]),
 
     setSpeedSetting: useCallback((speed: 'slow' | 'normal' | 'fast') => {
       dispatch({ type: 'SET_SPEED_SETTING', payload: speed });
@@ -384,9 +393,16 @@ const generateChoices = (
   kana: Kana,
   level: number,
   writingSystem: CharacterSet,
-  similarChars: string[]
+  similarChars: string[],
+  lastCorrectKana?: string | null
 ): Kana[] => {
-  const allKana = getKanaSets(level, writingSystem);
+  const allKana = getKanaSets(level, writingSystem)
+    .filter(k => k.text !== lastCorrectKana);
+
+  // If we filtered out all characters, fall back to the full set
+  if (allKana.length === 0) {
+    return generateChoices(kana, level, writingSystem, similarChars);
+  }
 
   const visuallySimularKana = similarChars
     .map(char => allKana.find(k => k.text === char))
