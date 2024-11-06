@@ -91,6 +91,7 @@ const KanaGame = () => {
           playRoundComplete();
           triggerParticleEffect('roundComplete');
 
+          actions.setPaused(true);
           tsParticles.load("roundCompleteParticles", {
             preset: "fireworks",
             particles: {
@@ -100,6 +101,7 @@ const KanaGame = () => {
           }).then((container) => {
             setTimeout(() => {
               container?.destroy();
+              actions.setPaused(false);
             }, 5000);
           });
 

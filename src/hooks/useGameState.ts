@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { CharacterSet, getKanaSets, getSimilarCharacters, Kana } from '../kana/kana';
 import { KanaStatsMap } from '../stats';
 
@@ -227,6 +227,10 @@ export function useGameState() {
     togglePause: useCallback(() => {
       dispatch({ type: state.isPaused ? 'RESUME_GAME' : 'PAUSE_GAME' });
     }, [state.isPaused]),
+
+    setPaused: useCallback((paused: boolean) => {
+      dispatch({ type: paused ? 'PAUSE_GAME' : 'RESUME_GAME' });
+    }, []),
 
     updatePosition: useCallback((x?: number, y?: number) => {
       dispatch({
