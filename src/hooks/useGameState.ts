@@ -69,6 +69,8 @@ const initialState: GameState = {
   pauseStack: [],
 };
 
+export const ROUND_COMPLETE_THRESHOLD = 10;
+
 export const LANDING_HEIGHT = 85;
 
 export const ACCELERATION_RATES = {

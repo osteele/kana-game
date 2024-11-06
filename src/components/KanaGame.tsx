@@ -5,12 +5,9 @@ import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
 import { useGameAudio } from '../effects/GameSound';
 import { PARTICLE_CONFIGS, ParticleEffectType } from '../effects/ParticleEffects';
-import { LANDING_HEIGHT, useGameState } from '../hooks/useGameState';
+import { LANDING_HEIGHT, ROUND_COMPLETE_THRESHOLD, useGameState } from '../hooks/useGameState';
 import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
-
-const ROUND_COMPLETE_THRESHOLD = 10;
-
 
 
 const KanaGame = () => {
@@ -27,10 +24,6 @@ const KanaGame = () => {
   useEffect(() => {
     localStorage.setItem('kanaGameStats', JSON.stringify(characterStats));
   }, [characterStats]);
-
-  const initializeGame = useCallback(() => {
-    actions.initializeRound();
-  }, [actions]);
 
   // Start game timer
   useEffect(() => {
@@ -64,7 +57,7 @@ const KanaGame = () => {
     initParticles();
   }, []);
 
-  const { initializeAudio, playSuccess, playFailure, playRoundComplete } = useGameAudio();
+  const gameAudio = useGameAudio();
 
   const triggerParticleEffect = useCallback((type: ParticleEffectType) => {
     const config = PARTICLE_CONFIGS[type];
@@ -83,11 +76,11 @@ const KanaGame = () => {
     if (state.feedback && state.currentKana) {
       // Play appropriate sound and show particles
       if (state.feedback?.isCorrect) {
-        playSuccess();
+        gameAudio.playSuccess();
         triggerParticleEffect('success');
 
         if (state.score.correct > 0 && state.score.correct % ROUND_COMPLETE_THRESHOLD === 0) {
-          playRoundComplete();
+          gameAudio.playRoundComplete();
           triggerParticleEffect('roundComplete');
 
           actions.setPaused(true);
@@ -108,13 +101,13 @@ const KanaGame = () => {
 
           setTimeout(() => {
             if (state.isPlaying) {
-              initializeGame();
+              actions.initializeRound();
             }
           }, 1000); // Longer delay for round completion
           return; // Exit early to prevent normal feedback
         }
       } else {
-        playFailure();
+        gameAudio.playFailure();
         triggerParticleEffect('failure');
       }
 
@@ -135,7 +128,7 @@ const KanaGame = () => {
       // Auto-advance after delay
       setTimeout(() => {
         if (state.isPlaying) {
-          initializeGame();
+          actions.initializeRound();
         }
       }, 2000);
     }
@@ -158,7 +151,7 @@ const KanaGame = () => {
           break;
         case ' ':
           if (state.isWaitingForNext) {
-            initializeGame();
+            actions.initializeRound();
           } else {
             actions.updatePosition(undefined, 80);
           }
@@ -189,11 +182,11 @@ const KanaGame = () => {
     }
   };
 
-  const startGame = () => {
-    initializeAudio();
+  const startGame = useCallback(() => {
+    gameAudio.initializeAudio();
     actions.startGame();
-    initializeGame();
-  };
+    actions.initializeRound();
+  }, [actions, gameAudio]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -201,35 +194,30 @@ const KanaGame = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const togglePause = () => {
+  const togglePause = useCallback(() => {
     actions.togglePause();
-  };
+  }, [actions]);
 
   // Show kana details state
   const [showKanaDetails, setShowKanaDetails] = useState(false);
 
-  // Modify settings toggle to handle pausing
-  const toggleSettings = () => {
+  const toggleSettings = useCallback(() => {
     if (!showSettings) {
-      // About to show settings
       actions.pushPause();
     } else {
-      // About to hide settings
       actions.popPause();
     }
     setShowSettings(!showSettings);
-  };
+  }, [actions]);
 
-  const toggleHelp = () => {
+  const toggleHelp = useCallback(() => {
     if (!showHelp) {
-      // About to show help
       actions.pushPause();
     } else {
-      // About to hide help
       actions.popPause();
     }
     setShowHelp(!showHelp);
-  };
+  }, [actions]);
 
   // Add global keyboard handlers for help
   useEffect(() => {
