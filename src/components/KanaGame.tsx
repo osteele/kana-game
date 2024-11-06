@@ -1,10 +1,11 @@
 import { Clock, HelpCircle, Settings as SettingsIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ISourceOptions } from "tsparticles-engine";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
-import { ACCELERATION_RATES, LANDING_HEIGHT, useGameState } from '../hooks/useGameState';
+import { useGameAudio } from '../effects/GameSound';
+import { PARTICLE_CONFIGS, ParticleEffectType } from '../effects/ParticleEffects';
+import { useGameState } from '../hooks/useGameState';
 import { KanaStatsMap } from '../stats';
 import Settings from './Settings';
 
@@ -12,134 +13,12 @@ const ROUND_COMPLETE_THRESHOLD = 10;
 
 
 
-type ParticleEffectType = 'success' | 'failure' | 'roundComplete';
-
-const PARTICLE_CONFIGS: Record<ParticleEffectType, ISourceOptions> = {
-  success: {
-    preset: "confetti",
-    fullScreen: { enable: true },
-    particles: {
-      number: { value: 50 },
-      life: { duration: { value: 2 } }
-    }
-  } as ISourceOptions,
-  failure: {
-    preset: "confetti",
-    fullScreen: { enable: true },
-    particles: {
-      color: { value: "#ff0000" },
-      number: { value: 30 },
-      life: { duration: { value: 1.5 } }
-    }
-  } as ISourceOptions,
-  roundComplete: {
-    preset: "fireworks",
-    fullScreen: { enable: true },
-    particles: {
-      number: { value: 10 },
-      life: { duration: { value: 3 } }
-    }
-  } as ISourceOptions
-};
-
-interface GameSound {
-  playSuccess: () => void;
-  playFailure: () => void;
-  playRoundComplete: () => void;
-}
-
-const useGameAudio = (): GameSound => {
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  // Initialize Audio Context
-  useEffect(() => {
-    audioContextRef.current = new AudioContext();
-    return () => {
-      audioContextRef.current?.close();
-    };
-  }, []);
-
-  // Create sound functions
-  const playSuccess = useCallback(() => {
-    if (!audioContextRef.current) return;
-    const ctx = audioContextRef.current;
-
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    // Happy sound: C major arpeggio
-    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
-
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.3);
-  }, []);
-
-  const playFailure = useCallback(() => {
-    if (!audioContextRef.current) return;
-    const ctx = audioContextRef.current;
-
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    // Sad sound: Descending tone
-    oscillator.frequency.setValueAtTime(400, ctx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
-
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.2);
-  }, []);
-
-  const playRoundComplete = useCallback(() => {
-    if (!audioContextRef.current) return;
-    const ctx = audioContextRef.current;
-
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    // Celebratory ascending pattern
-    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime);     // C5
-    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
-    oscillator.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.3); // C6
-
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.4);
-  }, []);
-
-  return {
-    playSuccess,
-    playFailure,
-    playRoundComplete
-  };
-};
-
 const KanaGame = () => {
   const { state, actions } = useGameState();
   const [showHelp, setShowHelp] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [_previousPauseState, setPreviousPauseState] = useState(false);
   const timerRef = useRef<Timer | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   const [characterStats, setCharacterStats] = useState<KanaStatsMap>(() => {
     const saved = localStorage.getItem('kanaGameStats');
@@ -150,7 +29,6 @@ const KanaGame = () => {
     localStorage.setItem('kanaGameStats', JSON.stringify(characterStats));
   }, [characterStats]);
 
-  // Replace initializeGame with:
   const initializeGame = useCallback(() => {
     actions.initializeRound();
   }, [actions]);
@@ -173,33 +51,6 @@ const KanaGame = () => {
   useEffect(() => {
     localStorage.setItem('kanaGameLevel', state.level.toString());
   }, [state.level]);
-
-  // Handle animation frame updates for falling kana
-  const animate = useCallback(() => {
-    if (state.isPlaying && !state.isWaitingForNext && !state.isPaused) {
-      // Use acceleration rate based on speed setting
-      const accelerationRate = ACCELERATION_RATES[state.speedSetting];
-      const newVelocity = state.velocity + accelerationRate;
-      actions.setVelocity(newVelocity);
-
-      // Calculate new position
-      const newY = state.position.y + newVelocity;
-      actions.updatePosition(state.position.x, newY);
-    }
-    animationFrameRef.current = requestAnimationFrame(animate);
-  }, [state.isPlaying, state.isWaitingForNext, state.isPaused, state.position, state.velocity, state.speedSetting]);
-
-  // Start animation loop
-  useEffect(() => {
-    if (state.isPlaying) {
-      animationFrameRef.current = requestAnimationFrame(animate);
-    }
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [state.isPlaying, animate]);
 
   const successParticlesRef = useRef<HTMLDivElement>(null);
   const failureParticlesRef = useRef<HTMLDivElement>(null);
@@ -230,13 +81,9 @@ const KanaGame = () => {
   }, []);
 
   useEffect(() => {
-    if (state.position.y >= LANDING_HEIGHT && !state.isWaitingForNext && state.currentKana) {
-      const column = Math.floor((state.position.x / 100) * 5);
-      const isCorrect = state.choices[column].romaji === state.currentKana.romaji;
-      actions.handleAnswer(isCorrect, '');
-
-      // Play appropriate sound
-      if (isCorrect) {
+    if (state.feedback && state.currentKana) {
+      // Play appropriate sound and show particles
+      if (state.feedback?.isCorrect) {
         playSuccess();
         triggerParticleEffect('success');
 
@@ -277,16 +124,12 @@ const KanaGame = () => {
         return {
           ...prev,
           [key]: {
-            correct: existing.correct + (isCorrect ? 1 : 0),
-            wrong: existing.wrong + (isCorrect ? 0 : 1),
+            correct: existing.correct + (state.feedback?.isCorrect ? 1 : 0),
+            wrong: existing.wrong + (state.feedback?.isCorrect ? 0 : 1),
             lastSeen: Date.now()
           }
         };
       });
-
-      actions.handleAnswer(isCorrect, isCorrect ? 'Correct!' : `Incorrect. The answer was "${state.currentKana.romaji}"`);
-
-      actions.setWaitingForNext(true);
 
       // Auto-advance after delay
       setTimeout(() => {
@@ -295,7 +138,7 @@ const KanaGame = () => {
         }
       }, 2000);
     }
-  }, [state.position.y, state.choices, state.currentKana, state.isPlaying, initializeGame, state.score]);
+  }, [state.feedback]);
 
   // Handle keyboard input
   useEffect(() => {
@@ -452,7 +295,7 @@ const KanaGame = () => {
         </div>
       </div>
 
-      {/* Add Help Modal */}
+      {/* Help Modal */}
       {showHelp && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg max-w-md w-full m-4">

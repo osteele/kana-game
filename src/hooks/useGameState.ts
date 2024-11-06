@@ -1,4 +1,4 @@
-import { useCallback, useReducer } from 'react';
+import { useCallback, useReducer, useRef, useEffect } from 'react';
 import { CharacterSet, getKanaSets, getSimilarCharacters, Kana } from '../kana/kana';
 import { KanaStatsMap } from '../stats';
 
@@ -41,7 +41,9 @@ type GameAction =
       choices: Kana[];
     }
   }
-  | { type: 'SET_SPEED_SETTING'; payload: 'slow' | 'normal' | 'fast' };
+  | { type: 'SET_SPEED_SETTING'; payload: 'slow' | 'normal' | 'fast' }
+  | { type: 'CHECK_LANDING' }
+  | { type: 'ANIMATE_FRAME' };
 
 // Create initial state
 const initialState: GameState = {
@@ -151,6 +153,44 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_SPEED_SETTING':
       return { ...state, speedSetting: action.payload };
 
+    case 'CHECK_LANDING': {
+      if (state.position.y >= LANDING_HEIGHT && !state.isWaitingForNext && state.currentKana) {
+        const column = Math.floor((state.position.x / 100) * 5);
+        const isCorrect = state.choices[column].romaji === state.currentKana.romaji;
+        return {
+          ...state,
+          isWaitingForNext: true,
+          feedback: {
+            isCorrect,
+            message: isCorrect ? 'Correct!' : `Incorrect. The answer was "${state.currentKana.romaji}"`
+          },
+          score: {
+            correct: state.score.correct + (isCorrect ? 1 : 0),
+            wrong: state.score.wrong + (isCorrect ? 0 : 1)
+          }
+        };
+      }
+      return state;
+    }
+
+    case 'ANIMATE_FRAME': {
+      if (!state.isPlaying || state.isWaitingForNext || state.isPaused) {
+        return state;
+      }
+      const accelerationRate = ACCELERATION_RATES[state.speedSetting];
+      const newVelocity = state.velocity + accelerationRate;
+      const newY = Math.min(state.position.y + newVelocity, LANDING_HEIGHT);
+
+      return {
+        ...state,
+        velocity: newVelocity,
+        position: {
+          ...state.position,
+          y: newY
+        }
+      };
+    }
+
     default:
       return state;
   }
@@ -159,6 +199,26 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 // Create custom hook
 export function useGameState() {
   const [state, dispatch] = useReducer(gameReducer, initialState);
+  const animationFrameRef = useRef<number | null>(null);
+
+  // Add animation loop
+  const animate = useCallback(() => {
+    dispatch({ type: 'ANIMATE_FRAME' });
+    dispatch({ type: 'CHECK_LANDING' });
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  // Handle animation lifecycle
+  useEffect(() => {
+    if (state.isPlaying) {
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [state.isPlaying, animate]);
 
   // Create action dispatchers
   const actions = {
