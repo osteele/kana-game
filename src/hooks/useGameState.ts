@@ -14,7 +14,7 @@ interface GameState {
   currentKana: Kana | null;
   position: { x: number; y: number };
   velocity: number;
-  feedback: { isCorrect: boolean; character: string; message: string } | null;
+  feedback: { isCorrect: boolean; character: string; message: string; selectedKana?: string } | null;
   writingSystem: CharacterSet;
   choices: Kana[];
   characterStats: KanaStatsMap;
@@ -31,7 +31,7 @@ type GameAction =
   | { type: 'SET_VELOCITY'; payload: number }
   | { type: 'SET_LEVEL'; payload: number }
   | { type: 'UPDATE_SCORE'; payload: { isCorrect: boolean } }
-  | { type: 'SET_FEEDBACK'; payload: { isCorrect: boolean; character: string; message: string } | null }
+  | { type: 'SET_FEEDBACK'; payload: { isCorrect: boolean; character: string; message: string; selectedKana?: string } | null }
   | { type: 'SET_WAITING'; payload: boolean }
   | { type: 'SET_KANA'; payload: { currentKana: Kana; choices: Kana[] } }
   | { type: 'SET_WRITING_SYSTEM'; payload: CharacterSet }
@@ -181,14 +181,16 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'CHECK_LANDING': {
       if (state.position.y >= LANDING_HEIGHT && !state.isWaitingForNext && state.currentKana) {
         const column = Math.floor((state.position.x / 100) * 5);
-        const isCorrect = state.choices[column].romaji === state.currentKana.romaji;
+        const selectedChoice = state.choices[column];
+        const isCorrect = selectedChoice.romaji === state.currentKana.romaji;
         return {
           ...state,
           isWaitingForNext: true,
           feedback: {
             isCorrect,
             character: state.currentKana.text,
-            message: isCorrect ? 'Correct!' : `Incorrect. The answer was “${state.currentKana.romaji}”`
+            selectedKana: selectedChoice.text,
+            message: isCorrect ? 'Correct!' : `Incorrect. The answer was "${state.currentKana.romaji}"`
           },
           score: {
             correct: state.score.correct + (isCorrect ? 1 : 0),
@@ -286,9 +288,17 @@ export function useGameState() {
       });
     }, []),
 
-    handleAnswer: useCallback((isCorrect: boolean, message: string) => {
+    handleAnswer: useCallback((isCorrect: boolean, message: string, selectedKana?: string) => {
+      dispatch({
+        type: 'SET_FEEDBACK',
+        payload: {
+          isCorrect,
+          character: state.currentKana!.text,
+          message,
+          selectedKana
+        }
+      });
       dispatch({ type: 'UPDATE_SCORE', payload: { isCorrect } });
-      dispatch({ type: 'SET_FEEDBACK', payload: { isCorrect, character: state.currentKana!.text, message } });
       dispatch({ type: 'SET_WAITING', payload: true });
     }, []),
 

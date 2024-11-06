@@ -10,8 +10,10 @@ const Settings = ({
   showKanaDetails,
   setShowKanaDetails,
   speedSetting,
-  setSpeedSetting
-} : {
+  setSpeedSetting,
+  speechEnabled,
+  setSpeechEnabled
+}: {
   level: number;
   setLevel: (level: number) => void;
   writingSystem: CharacterSet;
@@ -20,6 +22,8 @@ const Settings = ({
   setShowKanaDetails: (showKanaDetails: boolean) => void;
   speedSetting: 'slow' | 'normal' | 'fast';
   setSpeedSetting: (speed: 'slow' | 'normal' | 'fast') => void;
+  speechEnabled: boolean;
+  setSpeechEnabled: (enabled: boolean) => void;
 }) => {
   const getCharacterStatus = (romaji: string) => {
     const currentKana = getKanaSets(level, writingSystem).find(k => k.romaji === romaji);
@@ -78,6 +82,25 @@ const Settings = ({
               {speedSetting === 'slow' && '(Beginner)'}
               {speedSetting === 'normal' && '(Intermediate)'}
               {speedSetting === 'fast' && '(Advanced)'}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <label>Speech Feedback:</label>
+            <select
+              value={speechEnabled ? 'enabled' : 'disabled'}
+              onChange={(e) => {
+                const enabled = e.target.value === 'enabled';
+                setSpeechEnabled(enabled);
+                localStorage.setItem('kanaGameSpeech', enabled.toString());
+              }}
+              className="p-2 border rounded"
+            >
+              <option value="enabled">Enabled</option>
+              <option value="disabled">Disabled</option>
+            </select>
+            <span className="text-sm text-gray-500">
+              (Speaks kana pronunciation)
             </span>
           </div>
         </div>

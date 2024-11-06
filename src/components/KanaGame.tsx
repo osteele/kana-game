@@ -72,10 +72,62 @@ const KanaGame = () => {
     });
   }, []);
 
+  // Add new state for speech synthesis
+  const [speechSynth, setSpeechSynth] = useState<SpeechSynthesis | null>(null);
+  const [japaneseVoice, setJapaneseVoice] = useState<SpeechSynthesisVoice | null>(null);
+
+  // Initialize speech synthesis and find Japanese voice
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      setSpeechSynth(window.speechSynthesis);
+
+      // Wait for voices to load
+      const handleVoicesChanged = () => {
+        const voices = window.speechSynthesis.getVoices();
+        const jaVoice = voices.find(voice =>
+          voice.lang.startsWith('ja') || // Matches ja-JP, ja, etc.
+          voice.name.toLowerCase().includes('japanese')
+        );
+        setJapaneseVoice(jaVoice || null);
+      };
+
+      // Initial check for voices
+      handleVoicesChanged();
+
+      // Listen for voices changed event
+      window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+
+      return () => {
+        window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+      };
+    }
+  }, []);
+
+  // Add state for speech setting
+  const [speechEnabled, setSpeechEnabled] = useState(() => {
+    const saved = localStorage.getItem('kanaGameSpeech');
+    return saved ? saved === 'true' : true;  // Default to enabled
+  });
+
+  // Modify the speakKana function to respect the setting
+  const speakKana = useCallback((text: string) => {
+    if (!speechEnabled) return;  // Early return if speech is disabled
+    if (speechSynth && !speechSynth.speaking) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (japaneseVoice) {
+        utterance.voice = japaneseVoice;
+      }
+      utterance.lang = 'ja-JP';
+      utterance.rate = 0.8; // Slightly slower for clarity
+      speechSynth.speak(utterance);
+    }
+  }, [speechSynth, japaneseVoice, speechEnabled]);
+
   useEffect(() => {
     if (state.feedback && state.currentKana) {
       // Play appropriate sound and show particles
       if (state.feedback?.isCorrect) {
+        speakKana(`${state.currentKana.text}が正解です`);
         gameAudio.playSuccess();
         triggerParticleEffect('success');
 
@@ -107,6 +159,7 @@ const KanaGame = () => {
           return; // Exit early to prevent normal feedback
         }
       } else {
+        speakKana(`${state.feedback?.selectedKana}は違います。正解は${state.currentKana.text}です`);
         gameAudio.playFailure();
         triggerParticleEffect('failure');
       }
@@ -132,7 +185,7 @@ const KanaGame = () => {
         }
       }, 2000);
     }
-  }, [state.feedback]);
+  }, [state.feedback, speakKana]); // Add speakKana to dependencies
 
   // Handle keyboard input
   useEffect(() => {
@@ -150,6 +203,7 @@ const KanaGame = () => {
           actions.updatePosition(state.position.x + 5);
           break;
         case ' ':
+          actions.setPaused(false);
           if (state.isWaitingForNext) {
             actions.initializeRound();
           } else {
@@ -385,6 +439,8 @@ const KanaGame = () => {
           setWritingSystem={actions.setWritingSystem}
           showKanaDetails={showKanaDetails}
           setShowKanaDetails={setShowKanaDetails}
+          speechEnabled={speechEnabled}
+          setSpeechEnabled={setSpeechEnabled}
         />
       )}
 
