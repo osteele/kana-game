@@ -126,7 +126,6 @@ const KanaGame = () => {
     return saved ? saved === 'true' : true;  // Default to enabled
   });
 
-  // Modify the speakKana function to respect the setting
   const speakKana = useCallback((text: string) => {
     try {
       if (!speechEnabled) return;
@@ -137,6 +136,7 @@ const KanaGame = () => {
         }
         utterance.lang = 'ja-JP';
         utterance.rate = 0.8;
+        console.log('speaking', text);
         speechSynth.speak(utterance);
       }
     } catch (err) {
@@ -148,7 +148,7 @@ const KanaGame = () => {
     if (state.feedback && state.currentKana) {
       // Play appropriate sound and show particles
       if (state.feedback?.isCorrect) {
-        speakKana(`${state.currentKana.text}が正解です`);
+        speakKana(state.feedback.message.ja);
         gameAudio.playSuccess();
         triggerParticleEffect('success');
 
@@ -180,7 +180,10 @@ const KanaGame = () => {
           return; // Exit early to prevent normal feedback
         }
       } else {
-        speakKana(`${state.feedback?.selectedKana}は違います。正解は${state.currentKana.text}です`);
+        const guess = state.feedback?.guess?.text;
+        if (guess) {
+          speakKana(state.feedback.message.ja);
+        }
         gameAudio.playFailure();
         triggerParticleEffect('failure');
       }
@@ -569,7 +572,7 @@ const KanaGame = () => {
               className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold ${state.feedback.isCorrect ? 'text-green-500' : 'text-red-500'
                 }`}
             >
-              {state.feedback.message}
+              {state.feedback.message.en}
             </div>
           )}
 

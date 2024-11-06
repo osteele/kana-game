@@ -14,7 +14,12 @@ interface GameState {
   currentKana: Kana | null;
   position: { x: number; y: number };
   velocity: number;
-  feedback: { isCorrect: boolean; character: string; message: string; selectedKana?: string } | null;
+  feedback: {
+    isCorrect: boolean;
+    character: string;
+    message: { en: string; ja: string };
+    guess?: Kana
+  } | null;
   writingSystem: CharacterSet;
   choices: Kana[];
   characterStats: KanaStatsMap;
@@ -31,7 +36,14 @@ type GameAction =
   | { type: 'SET_VELOCITY'; payload: number }
   | { type: 'SET_LEVEL'; payload: number }
   | { type: 'UPDATE_SCORE'; payload: { isCorrect: boolean } }
-  | { type: 'SET_FEEDBACK'; payload: { isCorrect: boolean; character: string; message: string; selectedKana?: string } | null }
+  | {
+    type: 'SET_FEEDBACK'; payload: {
+      isCorrect: boolean;
+      character: string;
+      message: { en: string; ja: string };
+      guess?: Kana
+    } | null
+  }
   | { type: 'SET_WAITING'; payload: boolean }
   | { type: 'SET_KANA'; payload: { currentKana: Kana; choices: Kana[] } }
   | { type: 'SET_WRITING_SYSTEM'; payload: CharacterSet }
@@ -183,15 +195,24 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         const column = Math.floor((state.position.x / 100) * 5);
         const selectedChoice = state.choices[column];
         const isCorrect = selectedChoice.romaji === state.currentKana.romaji;
-        const message = isCorrect ? `"${state.currentKana.romaji}" is correct!` : `"${state.currentKana.romaji}" is incorrect. The correct answer is "${selectedChoice.romaji}".`;
+        const message = isCorrect ? {
+          en: `"${state.currentKana.romaji}" is correct!`,
+          ja: `"${state.currentKana.text}"が正解です`
+        } : {
+          en: `"${selectedChoice.romaji}" is incorrect. The correct answer is "${state.currentKana.romaji}".`,
+          ja: `"${selectedChoice.text}"は違います。正解は"${state.currentKana.text}"です`
+        };
         return {
           ...state,
           isWaitingForNext: true,
           feedback: {
             isCorrect,
             character: state.currentKana.text,
-            selectedKana: selectedChoice.text,
-            message: message.replace(/ ?"(.+?)" ?/g, '「$1」'),
+            guess: selectedChoice,
+            message: {
+              en: message.en.replace(/ ?"(.+?)" ?/g, '「$1」'),
+              ja: message.ja.replace(/"/g, ' ')
+            }
           },
           score: {
             correct: state.score.correct + (isCorrect ? 1 : 0),
@@ -294,9 +315,9 @@ export function useGameState() {
         type: 'SET_FEEDBACK',
         payload: {
           isCorrect,
-          character: state.currentKana!.text,
-          message,
-          selectedKana
+          character: state.currentKana?.text ?? '',
+          message: { en: message, ja: message },
+          guess: selectedKana ? { text: selectedKana, romaji: selectedKana } : undefined
         }
       });
       dispatch({ type: 'UPDATE_SCORE', payload: { isCorrect } });
