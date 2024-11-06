@@ -204,6 +204,16 @@ const KanaGame = () => {
           if (state.isPaused) return;
           actions.updatePosition(state.position.x + 5);
           break;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+          if (state.isPaused) return;
+          const columnIndex = parseInt(e.key) - 1;
+          const targetX = (columnIndex * 20) + 10; // 20% per column, centered at 10%
+          actions.updatePosition(targetX);
+          break;
         case ' ':
           if (state.isPaused) {
             actions.setPaused(false);
@@ -417,6 +427,7 @@ const KanaGame = () => {
               <div className="font-bold mt-2">Controls:</div>
               <ul className="list-disc pl-5">
                 <li>Use <span className="font-mono">←</span> and <span className="font-mono">→</span> arrow keys to move left and right</li>
+                <li>Use number keys <span className="font-mono">1-5</span> to move to specific columns</li>
                 <li>Click or tap on a column to move there</li>
                 <li>Click or tap on the current column to drop instantly</li>
                 <li>Press <span className="font-mono">Space</span> to drop the character or start the next round</li>
