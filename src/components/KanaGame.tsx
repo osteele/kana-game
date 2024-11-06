@@ -569,22 +569,30 @@ const KanaGame = () => {
           {/* Feedback */}
           {state.feedback && (
             <div
-              className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xl font-bold ${state.feedback.isCorrect ? 'text-green-500' : 'text-red-500'
-                }`}
+              className={`
+                absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+                text-xl font-bold serif
+                ${state.feedback.isCorrect ? 'text-green-500' : 'text-red-500'}
+              `}
             >
               {state.feedback.message.en}
             </div>
           )}
 
         </div>
-      )}
+      )
+      }
 
       {/* Fallen Characters */}
       <div className="h-10 w-full relative">
         {fallenCharacters.map((char, index) => (
           <div
             key={index}
-            className={`text-2xl w-5 h-5 absolute ${char.feedback ? 'text-green-800' : 'text-red-800'}`}
+            className={`
+              w-5 h-5 absolute
+              ${char.feedback ? 'text-green-800' : 'text-red-800'}
+              text-2xl font-['Yusei_Magic']
+            `}
             style={{
               left: `${char.x}%`,
               top: `${char.y}%`,
@@ -595,7 +603,7 @@ const KanaGame = () => {
           </div>
         ))}
       </div>
-    </div>
+    </div >
   );
 };
 
