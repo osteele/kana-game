@@ -65,7 +65,7 @@ const KanaGame = () => {
     initParticles();
   }, []);
 
-  const { playSuccess, playFailure, playRoundComplete } = useGameAudio();
+  const { initializeAudio, playSuccess, playFailure, playRoundComplete } = useGameAudio();
 
   const triggerParticleEffect = useCallback((type: ParticleEffectType) => {
     const config = PARTICLE_CONFIGS[type];
@@ -191,6 +191,7 @@ const KanaGame = () => {
   };
 
   const startGame = () => {
+    initializeAudio();
     actions.startGame();
     initializeGame();
   };

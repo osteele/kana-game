@@ -1,91 +1,54 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef, useState } from 'react';
 
-interface GameSound {
-  playSuccess: () => void;
-  playFailure: () => void;
-  playRoundComplete: () => void;
-}
-export const useGameAudio = (): GameSound => {
+export function useGameAudio() {
   const audioContextRef = useRef<AudioContext | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize Audio Context
-  useEffect(() => {
-    audioContextRef.current = new AudioContext();
-    return () => {
-      audioContextRef.current?.close();
-    };
-  }, []);
+  const initializeAudio = useCallback(() => {
+    if (!isInitialized) {
+      audioContextRef.current = new AudioContext();
+      setIsInitialized(true);
+    }
+  }, [isInitialized]);
 
-  // Create sound functions
-  const playSuccess = useCallback(() => {
+  const playSound = useCallback((frequency: number, duration: number) => {
     if (!audioContextRef.current) return;
-    const ctx = audioContextRef.current;
 
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
+    const oscillator = audioContextRef.current.createOscillator();
+    const gainNode = audioContextRef.current.createGain();
 
     oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    gainNode.connect(audioContextRef.current.destination);
 
-    // Happy sound: C major arpeggio
-    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
-
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    oscillator.frequency.value = frequency;
+    gainNode.gain.value = 0.1;
 
     oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.3);
+    oscillator.stop(audioContextRef.current.currentTime + duration);
   }, []);
+
+  const playSuccess = useCallback(() => {
+    if (!audioContextRef.current) return;
+    playSound(800, 0.1);
+    setTimeout(() => playSound(1000, 0.1), 100);
+  }, [playSound]);
 
   const playFailure = useCallback(() => {
     if (!audioContextRef.current) return;
-    const ctx = audioContextRef.current;
-
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    // Sad sound: Descending tone
-    oscillator.frequency.setValueAtTime(400, ctx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.2);
-
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.2);
-  }, []);
+    playSound(300, 0.2);
+  }, [playSound]);
 
   const playRoundComplete = useCallback(() => {
     if (!audioContextRef.current) return;
-    const ctx = audioContextRef.current;
-
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-
-    // Celebratory ascending pattern
-    oscillator.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-    oscillator.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-    oscillator.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
-    oscillator.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.3); // C6
-
-    gainNode.gain.setValueAtTime(0.2, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-
-    oscillator.start();
-    oscillator.stop(ctx.currentTime + 0.4);
-  }, []);
+    playSound(523.25, 0.1); // C5
+    setTimeout(() => playSound(659.25, 0.1), 100); // E5
+    setTimeout(() => playSound(783.99, 0.2), 200); // G5
+  }, [playSound]);
 
   return {
+    initializeAudio,
     playSuccess,
     playFailure,
     playRoundComplete
   };
-};
+}
