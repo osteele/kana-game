@@ -1,6 +1,6 @@
-# Kana Learning Game
+# Kana Fall
 
-An interactive game for learning Japanese hiragana characters. The game presents falling kana characters that players must guide to the correct romanization at the bottom of the screen.
+An interactive game for learning Japanese kana characters. The game presents falling kana characters that players must guide to the correct romanization at the bottom of the screen.
 
 ## Features
 
@@ -73,7 +73,7 @@ npm run dev
 
 ## Project Structure
 
-```
+```text
 kana-game/
 ├── index.html
 ├── package.json
