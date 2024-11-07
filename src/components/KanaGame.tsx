@@ -63,7 +63,7 @@ const KanaGame = () => {
 
   // Start game timer
   useEffect(() => {
-    if (state.isPlaying && !state.isPaused) {
+    if (state.isPlaying && !state.isGamePaused) {
       timerRef.current = setInterval(() => {
         actions.tickTimer();
       }, 1000);
@@ -73,7 +73,7 @@ const KanaGame = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [state.isPlaying, state.isPaused]);
+  }, [state.isPlaying, state.isGamePaused]);
 
   // Save level to localStorage
   useEffect(() => {
@@ -238,7 +238,7 @@ const KanaGame = () => {
           return; // Exit early to prevent normal feedback
         }
       } else {
-        const guess = state.feedback?.guess?.text;
+        const guess = state.feedback?.guess?.kana;
         if (guess) {
           speakKana(state.feedback.message.ja);
         }
@@ -248,7 +248,7 @@ const KanaGame = () => {
 
       // Update character stats
       setCharacterStats((prev) => {
-        const key = `${state.currentKana?.text}`;
+        const key = `${state.currentKana?.kana}`;
         const existing = prev[key] || { correct: 0, wrong: 0 };
         return {
           ...prev,
@@ -276,14 +276,14 @@ const KanaGame = () => {
 
       switch (e.key) {
         case "ArrowLeft":
-          if (state.isPaused || state.isWaitingForNext) return;
+          if (state.isGamePaused || state.isShowingFeedback) return;
           actions.updatePosition(
             Math.max(0, state.position.x - 5),
             state.position.y
           );
           break;
         case "ArrowRight":
-          if (state.isPaused || state.isWaitingForNext) return;
+          if (state.isGamePaused || state.isShowingFeedback) return;
           actions.updatePosition(state.position.x + 5);
           break;
         case "1":
@@ -291,21 +291,22 @@ const KanaGame = () => {
         case "3":
         case "4":
         case "5":
-          if (state.isPaused || state.isWaitingForNext) return;
+          if (state.isGamePaused || state.isShowingFeedback) return;
           const columnIndex = parseInt(e.key) - 1;
           const targetX = columnIndex * 20 + 10; // 20% per column, centered at 10%
           actions.updatePosition(targetX);
           break;
+        // @ts-expect-error Intentional fallthrough
         case " ":
-          if (state.isPaused) {
+          if (state.isGamePaused) {
             actions.setPaused(false);
             e.preventDefault(); // Prevent space from triggering twice
             return;
           }
         case "Enter":
         case "ArrowDown":
-          if (!state.isPaused) {
-            if (state.isWaitingForNext) {
+          if (!state.isGamePaused) {
+            if (state.isShowingFeedback) {
               actions.initializeRound();
             } else {
               actions.updatePosition(undefined, 80);
@@ -319,11 +320,17 @@ const KanaGame = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [state.isPlaying, state.isWaitingForNext, state.isPaused, state.position]);
+  }, [
+    state.isPlaying,
+    state.isShowingFeedback,
+    state.isGamePaused,
+    state.position,
+  ]);
 
   // Handle column click/tap
   const handleColumnClick = (index: number) => {
-    if (!state.isPlaying || state.isWaitingForNext || state.isPaused) return;
+    if (!state.isPlaying || state.isShowingFeedback || state.isGamePaused)
+      return;
     const targetX = index * 20 + 10; // 20% per column, centered at 10%
 
     // Get current column based on x position
@@ -350,6 +357,7 @@ const KanaGame = () => {
           err instanceof Error ? err.message : "Unknown error"
         }`
       );
+      console.error(err);
     }
   }, [actions, gameAudio]);
 
@@ -360,12 +368,12 @@ const KanaGame = () => {
   };
 
   const togglePause = useCallback(() => {
-    if (state.isPaused) {
+    if (state.isGamePaused) {
       actions.popPause();
     } else {
       actions.pushPause();
     }
-  }, [actions, state.isPaused]);
+  }, [actions, state.isGamePaused]);
 
   // Show kana details state
   const [showKanaDetails, setShowKanaDetails] = useState(false);
@@ -455,7 +463,7 @@ const KanaGame = () => {
       setFallenCharacters((prev) => [
         ...prev,
         {
-          text: state.currentKana!.text,
+          text: state.currentKana!.kana,
           x: initialX,
           initialX: initialX,
           y: 0,
@@ -473,7 +481,8 @@ const KanaGame = () => {
   const [driftOffset, setDriftOffset] = useState({ x: 0, phase: 0 });
 
   useEffect(() => {
-    if (!state.isPlaying || state.isPaused || state.isWaitingForNext) return;
+    if (!state.isPlaying || state.isGamePaused || state.isShowingFeedback)
+      return;
 
     const animateFrame = () => {
       setDriftOffset((prev) => ({
@@ -484,7 +493,7 @@ const KanaGame = () => {
 
     const animationFrame = requestAnimationFrame(animateFrame);
     return () => cancelAnimationFrame(animationFrame);
-  }, [state.isPlaying, state.isPaused, state.isWaitingForNext]);
+  }, [state.isPlaying, state.isGamePaused, state.isShowingFeedback]);
 
   // Update the falling kana position to include drift
   // Find the JSX for the falling kana and modify its style:
@@ -494,9 +503,9 @@ const KanaGame = () => {
         className={`
         absolute text-4xl transform -translate-x-1/2 z-20
         ${
-          state.isWaitingForNext && state.feedback?.isCorrect
+          state.isShowingFeedback && state.feedback?.isCorrect
             ? "text-green-600"
-            : state.isWaitingForNext
+            : state.isShowingFeedback
             ? "text-red-600"
             : "bg-gradient-to-br from-[#2d5a27] to-[#8B4513] bg-clip-text text-transparent"
         }
@@ -509,18 +518,18 @@ const KanaGame = () => {
           transform: "translateX(-50%)",
         }}
       >
-        {state.currentKana.text}
+        {state.currentKana.kana}
       </div>
     );
   }
 
   // Update the animation effect
   useEffect(() => {
-    if (!state.isPlaying || state.isPaused || fallenCharacters.length === 0)
+    if (!state.isPlaying || state.isGamePaused || fallenCharacters.length === 0)
       return;
 
     const animateFrame = () => {
-      if (!state.isWaitingForNext) {
+      if (!state.isShowingFeedback) {
         actions.tickTimer();
       }
 
@@ -549,9 +558,9 @@ const KanaGame = () => {
     return () => cancelAnimationFrame(animationFrame);
   }, [
     state.isPlaying,
-    state.isPaused,
+    state.isGamePaused,
     fallenCharacters,
-    state.isWaitingForNext,
+    state.isShowingFeedback,
   ]);
 
   useEffect(() => {
@@ -593,7 +602,7 @@ const KanaGame = () => {
               className="p-2 rounded hover:bg-gray-100"
               tabIndex={-1}
             >
-              {state.isPaused ? (
+              {state.isGamePaused ? (
                 <Play className="w-5 h-5" />
               ) : (
                 <Pause className="w-5 h-5" />
@@ -709,9 +718,9 @@ const KanaGame = () => {
               className={`
                 absolute text-4xl transform -translate-x-1/2 z-20
                 ${
-                  state.isWaitingForNext && state.feedback?.isCorrect
+                  state.isShowingFeedback && state.feedback?.isCorrect
                     ? "text-green-600"
-                    : state.isWaitingForNext
+                    : state.isShowingFeedback
                     ? "text-red-600"
                     : "bg-gradient-to-br from-[#2d5a27] to-[#8B4513] bg-clip-text text-transparent"
                 }
@@ -724,7 +733,7 @@ const KanaGame = () => {
                 transform: "translateX(-50%)",
               }}
             >
-              {state.currentKana.text}
+              {state.currentKana.kana}
             </div>
           )}
 
@@ -741,12 +750,12 @@ const KanaGame = () => {
                     transition-all duration-300
                     hover:scale-105 hover:shadow-lg
                     active:scale-95
-                    ${state.isWaitingForNext ? "pointer-events-none" : ""}
+                    ${state.isShowingFeedback ? "pointer-events-none" : ""}
                     ${
-                      state.isWaitingForNext &&
+                      state.isShowingFeedback &&
                       state.currentKana?.romaji === choice.romaji
                         ? "bg-green-100 animate-correct-answer ring-2 ring-green-500"
-                        : state.isWaitingForNext &&
+                        : state.isShowingFeedback &&
                           index === Math.floor((state.position.x / 100) * 5)
                         ? "bg-red-100 animate-wrong-answer ring-2 ring-red-500"
                         : index === Math.floor((state.position.x / 100) * 5)
