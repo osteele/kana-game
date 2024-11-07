@@ -1,13 +1,31 @@
-import { Clock, HelpCircle, Pause, Play, Settings as SettingsIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Clock,
+  HelpCircle,
+  Pause,
+  Play,
+  Settings as SettingsIcon,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
-import { useGameAudio } from '../effects/GameSound';
-import { PARTICLE_CONFIGS, ParticleEffectType } from '../effects/ParticleEffects';
-import { ROUND_COMPLETE_THRESHOLD, useGameState } from '../hooks/useGameState';
-import { KanaStatsMap } from '../stats';
-import Settings from './Settings';
+import { useGameAudio } from "../effects/GameSound";
+import {
+  PARTICLE_CONFIGS,
+  ParticleEffectType,
+} from "../effects/ParticleEffects";
+import { ROUND_COMPLETE_THRESHOLD, useGameState } from "../hooks/useGameState";
+import { KanaStatsMap } from "../stats";
+import Settings from "./Settings";
+
+interface FallenCharacter {
+  text: string;
+  x: number;
+  y: number;
+  rotation: number;
+  feedback: boolean;
+  velocity: number;
+}
 
 const ErrorAlert = ({ message }: { message: string }) => (
   <div role="alert" className="alert alert-error mb-4">
@@ -22,7 +40,7 @@ const KanaGame = () => {
   const timerRef = useRef<Timer | null>(null);
 
   const [characterStats, setCharacterStats] = useState<KanaStatsMap>(() => {
-    const saved = localStorage.getItem('kanaGameStats');
+    const saved = localStorage.getItem("kanaGameStats");
     return saved ? JSON.parse(saved) : {};
   });
 
@@ -30,9 +48,13 @@ const KanaGame = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('kanaGameStats', JSON.stringify(characterStats));
+      localStorage.setItem("kanaGameStats", JSON.stringify(characterStats));
     } catch (err) {
-      setError(`Failed to save game stats: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Failed to save game stats: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     }
   }, [characterStats]);
 
@@ -52,7 +74,7 @@ const KanaGame = () => {
 
   // Save level to localStorage
   useEffect(() => {
-    localStorage.setItem('kanaGameLevel', state.level.toString());
+    localStorage.setItem("kanaGameLevel", state.level.toString());
   }, [state.level]);
 
   const successParticlesRef = useRef<HTMLDivElement>(null);
@@ -73,37 +95,50 @@ const KanaGame = () => {
   const triggerParticleEffect = useCallback((type: ParticleEffectType) => {
     try {
       const config = PARTICLE_CONFIGS[type];
-      const duration = type === 'roundComplete' ? 5000 : 2000;
+      const duration = type === "roundComplete" ? 5000 : 2000;
 
-      tsParticles.load(`${type}Particles`, config).then((container) => {
-        if (container) {
-          setTimeout(() => {
-            container.destroy();
-          }, duration);
-        }
-      }).catch(err => {
-        setError(`Failed to load particle effects: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      });
+      tsParticles
+        .load(`${type}Particles`, config)
+        .then((container) => {
+          if (container) {
+            setTimeout(() => {
+              container.destroy();
+            }, duration);
+          }
+        })
+        .catch((err) => {
+          setError(
+            `Failed to load particle effects: ${
+              err instanceof Error ? err.message : "Unknown error"
+            }`
+          );
+        });
     } catch (err) {
-      setError(`Particle effect error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Particle effect error: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     }
   }, []);
 
   // Add new state for speech synthesis
   const [speechSynth, setSpeechSynth] = useState<SpeechSynthesis | null>(null);
-  const [japaneseVoice, setJapaneseVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [japaneseVoice, setJapaneseVoice] =
+    useState<SpeechSynthesisVoice | null>(null);
 
   // Initialize speech synthesis and find Japanese voice
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
       setSpeechSynth(window.speechSynthesis);
 
       // Wait for voices to load
       const handleVoicesChanged = () => {
         const voices = window.speechSynthesis.getVoices();
-        const jaVoice = voices.find(voice =>
-          voice.lang.startsWith('ja') || // Matches ja-JP, ja, etc.
-          voice.name.toLowerCase().includes('japanese')
+        const jaVoice = voices.find(
+          (voice) =>
+            voice.lang.startsWith("ja") || // Matches ja-JP, ja, etc.
+            voice.name.toLowerCase().includes("japanese")
         );
         setJapaneseVoice(jaVoice || null);
       };
@@ -112,36 +147,49 @@ const KanaGame = () => {
       handleVoicesChanged();
 
       // Listen for voices changed event
-      window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+      window.speechSynthesis.addEventListener(
+        "voiceschanged",
+        handleVoicesChanged
+      );
 
       return () => {
-        window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+        window.speechSynthesis.removeEventListener(
+          "voiceschanged",
+          handleVoicesChanged
+        );
       };
     }
   }, []);
 
   // Add state for speech setting
   const [speechEnabled, setSpeechEnabled] = useState(() => {
-    const saved = localStorage.getItem('kanaGameSpeech');
-    return saved ? saved === 'true' : true;  // Default to enabled
+    const saved = localStorage.getItem("kanaGameSpeech");
+    return saved ? saved === "true" : true; // Default to enabled
   });
 
-  const speakKana = useCallback((text: string) => {
-    try {
-      if (!speechEnabled) return;
-      if (speechSynth && !speechSynth.speaking) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        if (japaneseVoice) {
-          utterance.voice = japaneseVoice;
+  const speakKana = useCallback(
+    (text: string) => {
+      try {
+        if (!speechEnabled) return;
+        if (speechSynth && !speechSynth.speaking) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          if (japaneseVoice) {
+            utterance.voice = japaneseVoice;
+          }
+          utterance.lang = "ja-JP";
+          utterance.rate = 0.8;
+          speechSynth.speak(utterance);
         }
-        utterance.lang = 'ja-JP';
-        utterance.rate = 0.8;
-        speechSynth.speak(utterance);
+      } catch (err) {
+        setError(
+          `Speech synthesis error: ${
+            err instanceof Error ? err.message : "Unknown error"
+          }`
+        );
       }
-    } catch (err) {
-      setError(`Speech synthesis error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-  }, [speechSynth, japaneseVoice, speechEnabled]);
+    },
+    [speechSynth, japaneseVoice, speechEnabled]
+  );
 
   useEffect(() => {
     if (state.feedback && state.currentKana) {
@@ -149,27 +197,35 @@ const KanaGame = () => {
       if (state.feedback?.isCorrect) {
         speakKana(state.feedback.message.ja);
         gameAudio.playSuccess();
-        triggerParticleEffect('success');
+        triggerParticleEffect("success");
 
-        if (state.score.correct > 0 && state.score.correct % ROUND_COMPLETE_THRESHOLD === 0) {
+        if (
+          state.score.correct > 0 &&
+          state.score.correct % ROUND_COMPLETE_THRESHOLD === 0
+        ) {
           gameAudio.playRoundComplete();
-          triggerParticleEffect('roundComplete');
+          triggerParticleEffect("roundComplete");
 
           actions.setPaused(true);
-          tsParticles.load("roundCompleteParticles", {
-            preset: "fireworks",
-            particles: {
-              number: { value: 10 },
-              life: { duration: 3 },
-            },
-          }).then((container) => {
-            setTimeout(() => {
-              container?.destroy();
-              actions.setPaused(false);
-            }, 5000);
-          });
+          tsParticles
+            .load("roundCompleteParticles", {
+              preset: "fireworks",
+              particles: {
+                number: { value: 10 },
+                life: { duration: 3 },
+              },
+            })
+            .then((container) => {
+              setTimeout(() => {
+                container?.destroy();
+                actions.setPaused(false);
+              }, 5000);
+            });
 
-          actions.handleAnswer(true, `Round Complete! Score: ${state.score.correct}`);
+          actions.handleAnswer(
+            true,
+            `Round Complete! Score: ${state.score.correct}`
+          );
 
           setTimeout(() => {
             if (state.isPlaying) {
@@ -184,11 +240,11 @@ const KanaGame = () => {
           speakKana(state.feedback.message.ja);
         }
         gameAudio.playFailure();
-        triggerParticleEffect('failure');
+        triggerParticleEffect("failure");
       }
 
       // Update character stats
-      setCharacterStats(prev => {
+      setCharacterStats((prev) => {
         const key = `${state.currentKana?.text}`;
         const existing = prev[key] || { correct: 0, wrong: 0 };
         return {
@@ -196,8 +252,8 @@ const KanaGame = () => {
           [key]: {
             correct: existing.correct + (state.feedback?.isCorrect ? 1 : 0),
             wrong: existing.wrong + (state.feedback?.isCorrect ? 0 : 1),
-            lastSeen: Date.now()
-          }
+            lastSeen: Date.now(),
+          },
         };
       });
 
@@ -216,33 +272,36 @@ const KanaGame = () => {
       if (!state.isPlaying || showHelp || showSettings) return;
 
       switch (e.key) {
-        case 'ArrowLeft':
+        case "ArrowLeft":
           if (state.isPaused) return;
           actions.updatePosition(
             Math.max(0, state.position.x - 5),
             state.position.y
           );
           break;
-        case 'ArrowRight':
+        case "ArrowRight":
           if (state.isPaused) return;
           actions.updatePosition(state.position.x + 5);
           break;
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
           if (state.isPaused) return;
           const columnIndex = parseInt(e.key) - 1;
-          const targetX = (columnIndex * 20) + 10; // 20% per column, centered at 10%
+          const targetX = columnIndex * 20 + 10; // 20% per column, centered at 10%
           actions.updatePosition(targetX);
           break;
-        case ' ':
+        // @ts-expect-error Intentional fallthrough
+        case " ":
           if (state.isPaused) {
             actions.setPaused(false);
             e.preventDefault(); // Prevent space from triggering twice
             return;
           }
+        case "Enter":
+        case "ArrowDown":
           if (!state.isPaused) {
             if (state.isWaitingForNext) {
               actions.initializeRound();
@@ -256,14 +315,14 @@ const KanaGame = () => {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [state.isPlaying, state.isWaitingForNext, state.position, state.isPaused]);
 
   // Handle column click/tap
   const handleColumnClick = (index: number) => {
     if (!state.isPlaying || state.isWaitingForNext || state.isPaused) return;
-    const targetX = (index * 20) + 10; // 20% per column, centered at 10%
+    const targetX = index * 20 + 10; // 20% per column, centered at 10%
 
     // Get current column based on x position
     const currentColumn = Math.floor((state.position.x / 100) * 5);
@@ -284,14 +343,18 @@ const KanaGame = () => {
       actions.initializeRound();
       setError(null);
     } catch (err) {
-      setError(`Failed to start game: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Failed to start game: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
+      );
     }
   }, [actions, gameAudio]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const togglePause = useCallback(() => {
@@ -327,12 +390,12 @@ const KanaGame = () => {
   useEffect(() => {
     const handleGlobalKeys = (e: KeyboardEvent) => {
       switch (e.key) {
-        case '?':
+        case "?":
           if (!showSettings) {
             toggleHelp();
           }
           break;
-        case 'Escape':
+        case "Escape":
           if (showHelp) {
             toggleHelp();
           } else if (showSettings) {
@@ -342,8 +405,8 @@ const KanaGame = () => {
       }
     };
 
-    window.addEventListener('keydown', handleGlobalKeys);
-    return () => window.removeEventListener('keydown', handleGlobalKeys);
+    window.addEventListener("keydown", handleGlobalKeys);
+    return () => window.removeEventListener("keydown", handleGlobalKeys);
   }, []);
 
   useEffect(() => {
@@ -366,19 +429,21 @@ const KanaGame = () => {
     };
 
     // Add all event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
 
     // Clean up
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
     };
   }, [state.isPlaying, actions]);
 
-  const [fallenCharacters, setFallenCharacters] = useState<Array<{ text: string, x: number, y: number, rotation: number, feedback: boolean }>>([]);
+  const [fallenCharacters, setFallenCharacters] = useState<FallenCharacter[]>(
+    []
+  );
 
   useEffect(() => {
     if (state.feedback && state.currentKana) {
@@ -388,15 +453,50 @@ const KanaGame = () => {
         y: Math.random() * 10,
       };
 
-      setFallenCharacters(prev => [...prev, {
-        text: state.currentKana!.text,
-        x: (column * 20) + 10 + randomOffset.x, // Center of column + random offset
-        y: randomOffset.y,
-        rotation: Math.random() * 60 - 30,
-        feedback: state.feedback?.isCorrect ?? false,
-      }]);
+      setFallenCharacters((prev) => [
+        ...prev,
+        {
+          text: state.currentKana!.text,
+          x: column * 20 + 10 + randomOffset.x,
+          y: randomOffset.y,
+          rotation: Math.random() * 60 - 30,
+          feedback: state.feedback?.isCorrect ?? false,
+          velocity: 0.02 + Math.random() * 0.01,
+        },
+      ]);
     }
   }, [state.feedback]);
+
+  // Remove the separate animation effect and combine with the main game animation
+  useEffect(() => {
+    if (!state.isPlaying || state.isPaused || fallenCharacters.length === 0)
+      return;
+
+    const animateFrame = () => {
+      // Update falling character position through game state
+      if (!state.isWaitingForNext) {
+        actions.tickTimer();
+      }
+
+      // Update fallen characters
+      setFallenCharacters((prev) =>
+        prev
+          .map((char) => ({
+            ...char,
+            y: char.y + char.velocity,
+          }))
+          .filter((char) => char.y <= 100)
+      );
+    };
+
+    const animationFrame = requestAnimationFrame(animateFrame);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [
+    state.isPlaying,
+    state.isPaused,
+    fallenCharacters,
+    state.isWaitingForNext,
+  ]);
 
   useEffect(() => {
     setFallenCharacters([]);
@@ -405,9 +505,21 @@ const KanaGame = () => {
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-2 sm:p-4 select-none">
       {/* Add particle containers */}
-      <div id="successParticles" ref={successParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
-      <div id="failureParticles" ref={failureParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
-      <div id="roundCompleteParticles" ref={roundCompleteParticlesRef} className="fixed inset-0 pointer-events-none z-50" />
+      <div
+        id="successParticles"
+        ref={successParticlesRef}
+        className="fixed inset-0 pointer-events-none z-50"
+      />
+      <div
+        id="failureParticles"
+        ref={failureParticlesRef}
+        className="fixed inset-0 pointer-events-none z-50"
+      />
+      <div
+        id="roundCompleteParticles"
+        ref={roundCompleteParticlesRef}
+        className="fixed inset-0 pointer-events-none z-50"
+      />
 
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
@@ -425,7 +537,11 @@ const KanaGame = () => {
               className="p-2 rounded hover:bg-gray-100"
               tabIndex={-1}
             >
-              {state.isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+              {state.isPaused ? (
+                <Play className="w-5 h-5" />
+              ) : (
+                <Pause className="w-5 h-5" />
+              )}
             </button>
           )}
           <button
@@ -452,24 +568,44 @@ const KanaGame = () => {
           <div className="bg-white p-6 rounded-lg max-w-md w-full m-4">
             <h2 className="text-xl font-bold mb-4">How to Play</h2>
             <div className="space-y-3">
-              <p>Match the falling kana character with its correct romaji pronunciation.</p>
+              <p>
+                Match the falling kana character with its correct romaji
+                pronunciation.
+              </p>
 
               <div className="font-bold mt-2">Controls:</div>
               <ul className="list-disc pl-5">
-                <li>Use <span className="font-mono">←</span> and <span className="font-mono">→</span> arrow keys to move left and right</li>
-                <li>Use number keys <span className="font-mono">1-5</span> to move to specific columns</li>
+                <li>
+                  Use <span className="font-mono">←</span> and{" "}
+                  <span className="font-mono">→</span> arrow keys to move left
+                  and right
+                </li>
+                <li>
+                  Use number keys <span className="font-mono">1-5</span> to move
+                  to specific columns
+                </li>
                 <li>Click or tap on a column to move there</li>
                 <li>Click or tap on the current column to drop instantly</li>
-                <li>Press <span className="font-mono">Space</span> to drop the character or start the next round</li>
-                <li>Press <span className="font-mono">?</span> to show this help</li>
-                <li>Press <span className="font-mono">Esc</span> to close this help</li>
+                <li>
+                  Press <span className="font-mono">Space</span> to drop the
+                  character or start the next round
+                </li>
+                <li>
+                  Press <span className="font-mono">?</span> to show this help
+                </li>
+                <li>
+                  Press <span className="font-mono">Esc</span> to close this
+                  help
+                </li>
               </ul>
 
               <div className="font-bold mt-2">Tips:</div>
               <ul className="list-disc pl-5">
                 <li>The game pauses automatically when opening settings</li>
                 <li>Use the pause button (⏸️) to take a break</li>
-                <li>Practice with easier levels first to learn the characters</li>
+                <li>
+                  Practice with easier levels first to learn the characters
+                </li>
               </ul>
             </div>
             <button
@@ -516,11 +652,12 @@ const KanaGame = () => {
             <div
               className={`
                 absolute text-4xl transform -translate-x-1/2 z-20
-                ${state.isWaitingForNext && state.feedback?.isCorrect
-                  ? 'text-green-600'
-                  : state.isWaitingForNext
-                    ? 'text-red-600'
-                    : 'text-gray-800'
+                ${
+                  state.isWaitingForNext && state.feedback?.isCorrect
+                    ? "text-green-600"
+                    : state.isWaitingForNext
+                    ? "text-red-600"
+                    : "text-gray-800"
                 }
                 font-bold drop-shadow-md
                 transition-[left] duration-300 ease-in-out
@@ -528,7 +665,7 @@ const KanaGame = () => {
               style={{
                 left: `${state.position.x}%`,
                 top: `calc(${state.position.y}% - 3rem)`,
-                transform: 'translateX(-50%)',
+                transform: "translateX(-50%)",
               }}
             >
               {state.currentKana.text}
@@ -548,14 +685,17 @@ const KanaGame = () => {
                     transition-all duration-300
                     hover:scale-105 hover:shadow-lg
                     active:scale-95
-                    ${state.isWaitingForNext ? 'pointer-events-none' : ''}
-                    ${state.isWaitingForNext && state.currentKana?.romaji === choice.romaji
-                      ? 'bg-green-100 animate-correct-answer ring-2 ring-green-500'
-                      : state.isWaitingForNext && index === Math.floor((state.position.x / 100) * 5)
-                        ? 'bg-red-100 animate-wrong-answer ring-2 ring-red-500'
+                    ${state.isWaitingForNext ? "pointer-events-none" : ""}
+                    ${
+                      state.isWaitingForNext &&
+                      state.currentKana?.romaji === choice.romaji
+                        ? "bg-green-100 animate-correct-answer ring-2 ring-green-500"
+                        : state.isWaitingForNext &&
+                          index === Math.floor((state.position.x / 100) * 5)
+                        ? "bg-red-100 animate-wrong-answer ring-2 ring-red-500"
                         : index === Math.floor((state.position.x / 100) * 5)
-                          ? 'bg-blue-100'
-                          : 'bg-white hover:bg-blue-50'
+                        ? "bg-blue-100"
+                        : "bg-white hover:bg-blue-50"
                     }
                   `}
                 >
@@ -574,37 +714,34 @@ const KanaGame = () => {
               className={`
                 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
                 text-xl serif feedback-message
-                ${state.feedback.isCorrect ? 'text-green-500' : 'text-red-500'}
+                ${state.feedback.isCorrect ? "text-green-500" : "text-red-500"}
               `}
               dangerouslySetInnerHTML={{ __html: state.feedback.message.en }}
             />
           )}
-
         </div>
-      )
-      }
+      )}
 
       {/* Fallen Characters */}
-      <div className="h-10 w-full relative">
+      <div className="h-20 w-full relative overflow-hidden">
         {fallenCharacters.map((char, index) => (
           <div
-            key={index}
+            key={`${index}-${char.text}`}
             className={`
-              w-5 h-5 absolute
-              ${char.feedback ? 'text-green-800' : 'text-red-800'}
-              text-2xl font-['Yusei_Magic']
+              absolute text-2xl font-['Yusei_Magic']
+              ${char.feedback ? "text-green-800" : "text-red-800"}
             `}
             style={{
               left: `${char.x}%`,
               top: `${char.y}%`,
-              transform: `translate(-50%, -50%) rotate(${char.rotation}deg) translate(50%, 50%)`,
+              transform: `translate(-50%, -50%) rotate(${char.rotation}deg)`,
             }}
           >
             {char.text}
           </div>
         ))}
       </div>
-    </div >
+    </div>
   );
 };
 
