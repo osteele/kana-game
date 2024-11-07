@@ -269,21 +269,48 @@ const KanaGame = () => {
     }
   }, [state.feedback, speakKana]); // Add speakKana to dependencies
 
+  // Add this helper function near the top of the component
+  const findNextColumnByLetter = (
+    currentX: number,
+    letter: string,
+    choices: { romaji: string }[]
+  ): number | null => {
+    // Convert letter to lowercase for case-insensitive matching
+    letter = letter.toLowerCase();
+
+    // Find all matching columns
+    const matchingColumns = choices
+      .map((choice, index) => ({ index, romaji: choice.romaji }))
+      .filter(({ romaji }) => romaji.toLowerCase().startsWith(letter));
+
+    if (matchingColumns.length === 0) return null;
+
+    // Get current column index (0-4)
+    const currentColumn = Math.floor((currentX / 100) * 5);
+
+    // Find the next matching column after the current one
+    const nextMatch = matchingColumns.find(
+      ({ index }) => index > currentColumn
+    );
+
+    // If found, return that column, otherwise return the first matching column
+    return nextMatch ? nextMatch.index : matchingColumns[0].index;
+  };
+
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!state.isPlaying || showHelp || showSettings) return;
+      if (state.isGamePaused || state.isShowingFeedback) return;
 
       switch (e.key) {
         case "ArrowLeft":
-          if (state.isGamePaused || state.isShowingFeedback) return;
           actions.updatePosition(
             Math.max(0, state.position.x - 5),
             state.position.y
           );
           break;
         case "ArrowRight":
-          if (state.isGamePaused || state.isShowingFeedback) return;
           actions.updatePosition(state.position.x + 5);
           break;
         case "1":
@@ -291,18 +318,18 @@ const KanaGame = () => {
         case "3":
         case "4":
         case "5":
-          if (state.isGamePaused || state.isShowingFeedback) return;
           const columnIndex = parseInt(e.key) - 1;
-          const targetX = columnIndex * 20 + 10; // 20% per column, centered at 10%
+          const targetX = columnIndex * 20 + 10;
           actions.updatePosition(targetX);
           break;
         // @ts-expect-error Intentional fallthrough
         case " ":
           if (state.isGamePaused) {
             actions.setPaused(false);
-            e.preventDefault(); // Prevent space from triggering twice
+            e.preventDefault();
             return;
           }
+        // fallthrough
         case "Enter":
         case "ArrowDown":
           if (!state.isGamePaused) {
@@ -314,6 +341,18 @@ const KanaGame = () => {
           }
           break;
         default:
+          // Handle letter keys
+          if (e.key.length === 1 && /^[a-zA-Z]$/.test(e.key)) {
+            const nextColumn = findNextColumnByLetter(
+              state.position.x,
+              e.key,
+              state.choices
+            );
+            if (nextColumn !== null) {
+              const targetX = nextColumn * 20 + 10;
+              actions.updatePosition(targetX);
+            }
+          }
           break;
       }
     };
@@ -325,6 +364,7 @@ const KanaGame = () => {
     state.isShowingFeedback,
     state.isGamePaused,
     state.position,
+    state.choices,
   ]);
 
   // Handle column click/tap
@@ -649,6 +689,10 @@ const KanaGame = () => {
                   Use number keys <span className="font-mono">1-5</span> to move
                   to specific columns
                 </li>
+                <li>
+                  Press letter keys to jump to matching answers (e.g. press 'k'
+                  to cycle through columns starting with 'k')
+                </li>
                 <li>Click or tap on a column to move there</li>
                 <li>Click or tap on the current column to drop instantly</li>
                 <li>
@@ -670,6 +714,9 @@ const KanaGame = () => {
                 <li>Use the pause button (⏸️) to take a break</li>
                 <li>
                   Practice with easier levels first to learn the characters
+                </li>
+                <li>
+                  Use letter keys to quickly navigate between similar answers
                 </li>
               </ul>
             </div>

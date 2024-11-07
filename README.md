@@ -62,14 +62,14 @@ npm run dev
   - Access settings via the gear icon to change difficulty level
 
 ## Controls
-- Use `←` and `→` arrow keys to move left and right
-- Click or tap on a column to move there
-- Click or tap on the current column to drop instantly
-- Press `Space` to drop the character or start the next round
-- Press `?` to show help
-- Press `Esc` to close help
-- Use the pause button (⏸️) to take a break
-- Access settings (⚙️) from the top-right menu
+
+- **Arrow Keys**: Move left/right
+- **Number Keys (1-5)**: Jump to specific columns
+- **Letter Keys**: Jump to answers starting with that letter (e.g. press 'k' to cycle through columns starting with 'k')
+- **Space/Enter/Down Arrow**: Drop character or start next round
+- **Click/Tap**: Move to column or drop if already in column
+- **?**: Show help
+- **Esc**: Close help/settings
 
 ## Project Structure
 
