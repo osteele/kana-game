@@ -276,14 +276,14 @@ const KanaGame = () => {
 
       switch (e.key) {
         case "ArrowLeft":
-          if (state.isPaused) return;
+          if (state.isPaused || state.isWaitingForNext) return;
           actions.updatePosition(
             Math.max(0, state.position.x - 5),
             state.position.y
           );
           break;
         case "ArrowRight":
-          if (state.isPaused) return;
+          if (state.isPaused || state.isWaitingForNext) return;
           actions.updatePosition(state.position.x + 5);
           break;
         case "1":
@@ -291,12 +291,11 @@ const KanaGame = () => {
         case "3":
         case "4":
         case "5":
-          if (state.isPaused) return;
+          if (state.isPaused || state.isWaitingForNext) return;
           const columnIndex = parseInt(e.key) - 1;
           const targetX = columnIndex * 20 + 10; // 20% per column, centered at 10%
           actions.updatePosition(targetX);
           break;
-        // @ts-expect-error Intentional fallthrough
         case " ":
           if (state.isPaused) {
             actions.setPaused(false);
@@ -320,7 +319,7 @@ const KanaGame = () => {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [state.isPlaying, state.isWaitingForNext, state.position, state.isPaused]);
+  }, [state.isPlaying, state.isWaitingForNext, state.isPaused, state.position]);
 
   // Handle column click/tap
   const handleColumnClick = (index: number) => {
