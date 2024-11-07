@@ -25,6 +25,9 @@ interface FallenCharacter {
   rotation: number;
   feedback: boolean;
   velocity: number;
+  amplitude: number;
+  frequency: number;
+  initialX: number;
 }
 
 const ErrorAlert = ({ message }: { message: string }) => (
@@ -448,43 +451,97 @@ const KanaGame = () => {
   useEffect(() => {
     if (state.feedback && state.currentKana) {
       const column = Math.floor((state.position.x / 100) * 5);
-      const randomOffset = {
-        x: Math.random() * 10 - 5,
-        y: Math.random() * 10,
-      };
+      const initialX = column * 20 + 10;
 
       setFallenCharacters((prev) => [
         ...prev,
         {
           text: state.currentKana!.text,
-          x: column * 20 + 10 + randomOffset.x,
-          y: randomOffset.y,
-          rotation: Math.random() * 60 - 30,
+          x: initialX,
+          initialX: initialX,
+          y: 0,
+          rotation: Math.random() * 360,
           feedback: state.feedback?.isCorrect ?? false,
-          velocity: 0.02 + Math.random() * 0.01,
+          velocity: 0.03 + Math.random() * 0.02,
+          amplitude: 3 + Math.random() * 2,
+          frequency: 0.002 + Math.random() * 0.001,
         },
       ]);
     }
   }, [state.feedback]);
 
-  // Remove the separate animation effect and combine with the main game animation
+  // Add subtle drift to the falling character
+  const [driftOffset, setDriftOffset] = useState({ x: 0, phase: 0 });
+
+  useEffect(() => {
+    if (!state.isPlaying || state.isPaused || state.isWaitingForNext) return;
+
+    const animateFrame = () => {
+      setDriftOffset((prev) => ({
+        x: Math.sin(prev.phase) * 2.5, // Increased from 0.5 to 2.5 - now drifts 2.5% of width
+        phase: prev.phase + 0.01, // Keep the same slow phase change
+      }));
+    };
+
+    const animationFrame = requestAnimationFrame(animateFrame);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [state.isPlaying, state.isPaused, state.isWaitingForNext]);
+
+  // Update the falling kana position to include drift
+  // Find the JSX for the falling kana and modify its style:
+  {
+    state.currentKana && (
+      <div
+        className={`
+        absolute text-4xl transform -translate-x-1/2 z-20
+        ${
+          state.isWaitingForNext && state.feedback?.isCorrect
+            ? "text-green-600"
+            : state.isWaitingForNext
+            ? "text-red-600"
+            : "bg-gradient-to-br from-[#2d5a27] to-[#8B4513] bg-clip-text text-transparent"
+        }
+        font-bold drop-shadow-md
+        transition-[left] duration-300 ease-in-out
+      `}
+        style={{
+          left: `${state.position.x + driftOffset.x}%`,
+          top: `calc(${state.position.y}% - 3rem)`,
+          transform: "translateX(-50%)",
+        }}
+      >
+        {state.currentKana.text}
+      </div>
+    );
+  }
+
+  // Update the animation effect
   useEffect(() => {
     if (!state.isPlaying || state.isPaused || fallenCharacters.length === 0)
       return;
 
     const animateFrame = () => {
-      // Update falling character position through game state
       if (!state.isWaitingForNext) {
         actions.tickTimer();
       }
 
-      // Update fallen characters
       setFallenCharacters((prev) =>
         prev
-          .map((char) => ({
-            ...char,
-            y: char.y + char.velocity,
-          }))
+          .map((char) => {
+            const newY = char.y + char.velocity;
+            // Calculate swaying motion using sine wave
+            const newX =
+              char.initialX + Math.sin(newY * char.frequency) * char.amplitude;
+            // Gradually increase rotation as it falls
+            const newRotation = char.rotation + char.velocity * 2;
+
+            return {
+              ...char,
+              y: newY,
+              x: newX,
+              rotation: newRotation,
+            };
+          })
           .filter((char) => char.y <= 100)
       );
     };
@@ -657,13 +714,13 @@ const KanaGame = () => {
                     ? "text-green-600"
                     : state.isWaitingForNext
                     ? "text-red-600"
-                    : "text-gray-800"
+                    : "bg-gradient-to-br from-[#2d5a27] to-[#8B4513] bg-clip-text text-transparent"
                 }
                 font-bold drop-shadow-md
                 transition-[left] duration-300 ease-in-out
               `}
               style={{
-                left: `${state.position.x}%`,
+                left: `${state.position.x + driftOffset.x}%`,
                 top: `calc(${state.position.y}% - 3rem)`,
                 transform: "translateX(-50%)",
               }}
@@ -730,11 +787,13 @@ const KanaGame = () => {
             className={`
               absolute text-2xl font-['Yusei_Magic']
               ${char.feedback ? "text-green-800" : "text-red-800"}
+              transition-transform duration-100 ease-in-out
             `}
             style={{
               left: `${char.x}%`,
               top: `${char.y}%`,
               transform: `translate(-50%, -50%) rotate(${char.rotation}deg)`,
+              opacity: Math.max(0, 1 - char.y / 100), // Fade out as it falls
             }}
           >
             {char.text}
