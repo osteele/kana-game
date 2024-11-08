@@ -1,34 +1,20 @@
-import {
-  Clock,
-  HelpCircle,
-  Pause,
-  Play,
-  Settings as SettingsIcon,
-} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { tsParticles } from "tsparticles-engine";
 import { loadConfettiPreset } from "tsparticles-preset-confetti";
 import { loadFireworksPreset } from "tsparticles-preset-fireworks";
+import { useFallingCharacters } from "../effects/FallingCharacters";
 import { useGameAudio } from "../effects/GameSound";
 import {
   PARTICLE_CONFIGS,
   ParticleEffectType,
 } from "../effects/ParticleEffects";
+import { useSpeechSynthesis } from "../effects/SpeechSynthesis";
 import { ROUND_COMPLETE_THRESHOLD, useGameState } from "../hooks/useGameState";
 import { KanaStatsMap } from "../stats";
+import { AnswerColumns } from "./AnswerColumns";
+import { GameHeader } from "./GameHeader";
+import { HelpModal } from "./HelpModal";
 import Settings from "./Settings";
-
-interface FallenCharacter {
-  text: string;
-  x: number;
-  y: number;
-  rotation: number;
-  feedback: boolean;
-  velocity: number;
-  amplitude: number;
-  frequency: number;
-  initialX: number;
-}
 
 const ErrorAlert = ({ message }: { message: string }) => (
   <div role="alert" className="alert alert-error mb-4">
@@ -125,78 +111,25 @@ const KanaGame = () => {
     }
   }, []);
 
-  // Add new state for speech synthesis
-  const [speechSynth, setSpeechSynth] = useState<SpeechSynthesis | null>(null);
-  const [japaneseVoice, setJapaneseVoice] =
-    useState<SpeechSynthesisVoice | null>(null);
+  const { speechEnabled, setSpeechEnabled, speakKana } = useSpeechSynthesis();
 
-  // Initialize speech synthesis and find Japanese voice
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      setSpeechSynth(window.speechSynthesis);
-
-      // Wait for voices to load
-      const handleVoicesChanged = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const jaVoice = voices.find(
-          (voice) =>
-            voice.lang.startsWith("ja") || // Matches ja-JP, ja, etc.
-            voice.name.toLowerCase().includes("japanese")
-        );
-        setJapaneseVoice(jaVoice || null);
-      };
-
-      // Initial check for voices
-      handleVoicesChanged();
-
-      // Listen for voices changed event
-      window.speechSynthesis.addEventListener(
-        "voiceschanged",
-        handleVoicesChanged
-      );
-
-      return () => {
-        window.speechSynthesis.removeEventListener(
-          "voiceschanged",
-          handleVoicesChanged
-        );
-      };
-    }
-  }, []);
-
-  // Add state for speech setting
-  const [speechEnabled, setSpeechEnabled] = useState(() => {
-    const saved = localStorage.getItem("kanaGameSpeech");
-    return saved ? saved === "true" : true; // Default to enabled
-  });
-
-  const speakKana = useCallback(
-    (text: string) => {
-      try {
-        if (!speechEnabled) return;
-        if (speechSynth && !speechSynth.speaking) {
-          const utterance = new SpeechSynthesisUtterance(text);
-          if (japaneseVoice) {
-            utterance.voice = japaneseVoice;
-          }
-          utterance.lang = "ja-JP";
-          utterance.rate = 0.8;
-          speechSynth.speak(utterance);
-        }
-      } catch (err) {
-        setError(
-          `Speech synthesis error: ${
-            err instanceof Error ? err.message : "Unknown error"
-          }`
-        );
-      }
-    },
-    [speechSynth, japaneseVoice, speechEnabled]
-  );
+  const { fallenCharacters, driftOffset, addFallenCharacter } =
+    useFallingCharacters(
+      state.isPlaying,
+      state.isGamePaused,
+      state.isShowingFeedback
+    );
 
   useEffect(() => {
     if (state.feedback && state.currentKana) {
-      // Play appropriate sound and show particles
+      const column = Math.floor((state.position.x / 100) * 5);
+      const initialX = column * 20 + 10;
+      addFallenCharacter(
+        state.currentKana.kana,
+        initialX,
+        state.feedback.isCorrect
+      );
+
       if (state.feedback?.isCorrect) {
         speakKana(state.feedback.message.ja);
         gameAudio.playSuccess();
@@ -267,9 +200,8 @@ const KanaGame = () => {
         }
       }, 2000);
     }
-  }, [state.feedback, speakKana]); // Add speakKana to dependencies
+  }, [state.feedback, speakKana, addFallenCharacter]);
 
-  // Add this helper function near the top of the component
   const findNextColumnByLetter = (
     currentX: number,
     letter: string,
@@ -401,12 +333,6 @@ const KanaGame = () => {
     }
   }, [actions, gameAudio]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const togglePause = useCallback(() => {
     if (state.isGamePaused) {
       actions.popPause();
@@ -491,122 +417,6 @@ const KanaGame = () => {
     };
   }, [state.isPlaying, actions]);
 
-  const [fallenCharacters, setFallenCharacters] = useState<FallenCharacter[]>(
-    []
-  );
-
-  useEffect(() => {
-    if (state.feedback && state.currentKana) {
-      const column = Math.floor((state.position.x / 100) * 5);
-      const initialX = column * 20 + 10;
-
-      setFallenCharacters((prev) => [
-        ...prev,
-        {
-          text: state.currentKana!.kana,
-          x: initialX,
-          initialX: initialX,
-          y: 0,
-          rotation: Math.random() * 360,
-          feedback: state.feedback?.isCorrect ?? false,
-          velocity: 0.03 + Math.random() * 0.02,
-          amplitude: 3 + Math.random() * 2,
-          frequency: 0.002 + Math.random() * 0.001,
-        },
-      ]);
-    }
-  }, [state.feedback]);
-
-  // Add subtle drift to the falling character
-  const [driftOffset, setDriftOffset] = useState({ x: 0, phase: 0 });
-
-  useEffect(() => {
-    if (!state.isPlaying || state.isGamePaused || state.isShowingFeedback)
-      return;
-
-    const animateFrame = () => {
-      setDriftOffset((prev) => ({
-        x: Math.sin(prev.phase) * 2.5, // Increased from 0.5 to 2.5 - now drifts 2.5% of width
-        phase: prev.phase + 0.01, // Keep the same slow phase change
-      }));
-    };
-
-    const animationFrame = requestAnimationFrame(animateFrame);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [state.isPlaying, state.isGamePaused, state.isShowingFeedback]);
-
-  // Update the falling kana position to include drift
-  // Find the JSX for the falling kana and modify its style:
-  {
-    state.currentKana && (
-      <div
-        className={`
-        absolute text-4xl transform -translate-x-1/2 z-20
-        ${
-          state.isShowingFeedback && state.feedback?.isCorrect
-            ? "text-green-600"
-            : state.isShowingFeedback
-            ? "text-red-600"
-            : "bg-gradient-to-br from-[#2d5a27] to-[#8B4513] bg-clip-text text-transparent"
-        }
-        font-bold drop-shadow-md
-        transition-[left] duration-300 ease-in-out
-      `}
-        style={{
-          left: `${state.position.x + driftOffset.x}%`,
-          top: `calc(${state.position.y}% - 3rem)`,
-          transform: "translateX(-50%)",
-        }}
-      >
-        {state.currentKana.kana}
-      </div>
-    );
-  }
-
-  // Update the animation effect
-  useEffect(() => {
-    if (!state.isPlaying || state.isGamePaused || fallenCharacters.length === 0)
-      return;
-
-    const animateFrame = () => {
-      if (!state.isShowingFeedback) {
-        actions.tickTimer();
-      }
-
-      setFallenCharacters((prev) =>
-        prev
-          .map((char) => {
-            const newY = char.y + char.velocity;
-            // Calculate swaying motion using sine wave
-            const newX =
-              char.initialX + Math.sin(newY * char.frequency) * char.amplitude;
-            // Gradually increase rotation as it falls
-            const newRotation = char.rotation + char.velocity * 2;
-
-            return {
-              ...char,
-              y: newY,
-              x: newX,
-              rotation: newRotation,
-            };
-          })
-          .filter((char) => char.y <= 100)
-      );
-    };
-
-    const animationFrame = requestAnimationFrame(animateFrame);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [
-    state.isPlaying,
-    state.isGamePaused,
-    fallenCharacters,
-    state.isShowingFeedback,
-  ]);
-
-  useEffect(() => {
-    setFallenCharacters([]);
-  }, [state.level]);
-
   return (
     <div className="w-full h-full max-w-2xl mx-auto p-2 sm:p-4 select-none">
       {/* Add particle containers */}
@@ -626,111 +436,23 @@ const KanaGame = () => {
         className="fixed inset-0 pointer-events-none z-50"
       />
 
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-4">
-          <Clock className="w-5 h-5" />
-          <span className="text-lg">{formatTime(state.elapsedTime)}</span>
-          <div className="text-lg">
-            ✓ {state.score.correct} | ✗ {state.score.wrong}
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          {state.isPlaying && (
-            <button
-              onClick={togglePause}
-              className="p-2 rounded hover:bg-gray-100"
-              tabIndex={-1}
-            >
-              {state.isGamePaused ? (
-                <Play className="w-5 h-5" />
-              ) : (
-                <Pause className="w-5 h-5" />
-              )}
-            </button>
-          )}
-          <button
-            onClick={toggleHelp}
-            className="p-2 rounded hover:bg-gray-100"
-            aria-label="Help"
-          >
-            <HelpCircle className="w-5 h-5" />
-          </button>
-          <button
-            onClick={toggleSettings}
-            className="p-2 rounded hover:bg-gray-100"
-          >
-            <SettingsIcon className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+      {/* Replace header with GameHeader component */}
+      <GameHeader
+        elapsedTime={state.elapsedTime}
+        score={state.score}
+        isPlaying={state.isPlaying}
+        isGamePaused={state.isGamePaused}
+        onTogglePause={togglePause}
+        onToggleHelp={toggleHelp}
+        onToggleSettings={toggleSettings}
+      />
 
       {error && <ErrorAlert message={error} />}
 
-      {/* Help Modal */}
-      {showHelp && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full m-4">
-            <h2 className="text-xl font-bold mb-4">How to Play</h2>
-            <div className="space-y-3">
-              <p>
-                Match the falling kana character with its correct romaji
-                pronunciation.
-              </p>
+      {/* Replace help modal with HelpModal component */}
+      {showHelp && <HelpModal onClose={toggleHelp} />}
 
-              <div className="font-bold mt-2">Controls:</div>
-              <ul className="list-disc pl-5">
-                <li>
-                  Use <span className="font-mono">←</span> and{" "}
-                  <span className="font-mono">→</span> arrow keys to move left
-                  and right
-                </li>
-                <li>
-                  Use number keys <span className="font-mono">1-5</span> to move
-                  to specific columns
-                </li>
-                <li>
-                  Press letter keys to jump to matching answers (e.g. press 'k'
-                  to cycle through columns starting with 'k')
-                </li>
-                <li>Click or tap on a column to move there</li>
-                <li>Click or tap on the current column to drop instantly</li>
-                <li>
-                  Press <span className="font-mono">Space</span> to drop the
-                  character or start the next round
-                </li>
-                <li>
-                  Press <span className="font-mono">?</span> to show this help
-                </li>
-                <li>
-                  Press <span className="font-mono">Esc</span> to close this
-                  help
-                </li>
-              </ul>
-
-              <div className="font-bold mt-2">Tips:</div>
-              <ul className="list-disc pl-5">
-                <li>The game pauses automatically when opening settings</li>
-                <li>Use the pause button (⏸️) to take a break</li>
-                <li>
-                  Practice with easier levels first to learn the characters
-                </li>
-                <li>
-                  Use letter keys to quickly navigate between similar answers
-                </li>
-              </ul>
-            </div>
-            <button
-              onClick={toggleHelp}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full"
-            >
-              Got it!
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Settings Panel */}
+      {/* Settings panel remains unchanged */}
       {showSettings && (
         <Settings
           level={state.level}
@@ -784,43 +506,16 @@ const KanaGame = () => {
             </div>
           )}
 
-          {/* Answer Columns */}
-          <div className="absolute bottom-0 left-0 right-0">
-            <div className="grid grid-cols-5 gap-4 relative p-4">
-              <div className="absolute inset-0 bg-gray-50 rounded-xl -z-10" />
-              {state.choices.map((choice, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleColumnClick(index)}
-                  className={`
-                    relative p-4 text-xl rounded-lg
-                    transition-all duration-300
-                    hover:scale-105 hover:shadow-lg
-                    active:scale-95
-                    ${state.isShowingFeedback ? "pointer-events-none" : ""}
-                    ${
-                      state.isShowingFeedback &&
-                      state.currentKana?.romaji === choice.romaji
-                        ? "bg-green-100 animate-correct-answer ring-2 ring-green-500"
-                        : state.isShowingFeedback &&
-                          index === Math.floor((state.position.x / 100) * 5)
-                        ? "bg-red-100 animate-wrong-answer ring-2 ring-red-500"
-                        : index === Math.floor((state.position.x / 100) * 5)
-                        ? "bg-blue-100"
-                        : "bg-white hover:bg-blue-50"
-                    }
-                  `}
-                >
-                  <span className="hidden sm:block absolute bottom-1 left-2 text-xs font-mono text-gray-400">
-                    {index + 1}
-                  </span>
-                  {choice.romaji}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Replace answer columns with AnswerColumns component */}
+          <AnswerColumns
+            choices={state.choices}
+            position={state.position}
+            currentKana={state.currentKana}
+            isShowingFeedback={state.isShowingFeedback}
+            onColumnClick={handleColumnClick}
+          />
 
-          {/* Feedback */}
+          {/* Feedback message remains unchanged */}
           {state.feedback && (
             <div
               className={`
@@ -848,7 +543,7 @@ const KanaGame = () => {
               left: `${char.x}%`,
               top: `${char.y}%`,
               transform: `translate(-50%, -50%) rotate(${char.rotation}deg)`,
-              opacity: Math.max(0, 1 - char.y / 100), // Fade out as it falls
+              opacity: Math.max(0, 1 - char.y / 100),
             }}
           >
             {char.text}
