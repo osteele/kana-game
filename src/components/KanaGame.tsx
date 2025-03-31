@@ -105,36 +105,37 @@ const KanaGame = () => {
   const gameAudio = useGameAudio();
 
   const triggerParticleEffect = useCallback((type: ParticleEffectType) => {
-    try {
-      const config = PARTICLE_CONFIGS[type];
-      const duration = type === "roundComplete" ? 5000 : 2000;
+    const config = PARTICLE_CONFIGS[type];
+    const duration = type === "roundComplete" ? 5000 : 2000;
 
-      tsParticles
-        .load(`${type}Particles`, config)
-        .then((container) => {
-          if (container) {
-            setTimeout(() => {
-              container.destroy();
-            }, duration);
-          }
-        })
-        .catch((err) => {
-          setError(
-            `Failed to load particle effects: ${
-              err instanceof Error ? err.message : "Unknown error"
-            }`
-          );
-        });
-    } catch (err) {
-      setError(
-        `Particle effect error: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }`
-      );
-    }
+    tsParticles
+      .load(`${type}Particles`, config)
+      .then((container) => {
+        if (container) {
+          setTimeout(() => {
+            container.destroy();
+          }, duration);
+        }
+      })
+      .catch((err) => {
+        // Let errors propagate to the console for debugging
+        console.error("Particle effect error:", err);
+        // But also show a user-friendly message
+        setError("Failed to display particle effects. See console for details.");
+      });
   }, []);
 
-  const { speechEnabled, setSpeechEnabled, speakKana } = useSpeechSynthesis();
+  const { 
+    speechEnabled, 
+    setSpeechEnabled, 
+    speakKana,
+    apiKey,
+    setApiKey,
+    availableVoices,
+    selectedVoice,
+    setSelectedVoice,
+    speakSample
+  } = useSpeechSynthesis();
 
   const { fallenCharacters, driftOffset, addFallenCharacter } =
     useFallingCharacters(
@@ -343,20 +344,12 @@ const KanaGame = () => {
   };
 
   const startGame = useCallback(() => {
-    try {
-      gameAudio.initializeAudio();
-      gameStore.startGame();
-      gameStore.initializeRound();
-      setError(null);
-    } catch (err) {
-      setError(
-        `Failed to start game: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }`
-      );
-      console.error(err);
-    }
-  }, [gameAudio]);
+    // Let errors propagate to console for debugging
+    gameAudio.initializeAudio();
+    gameStore.startGame();
+    gameStore.initializeRound();
+    setError(null);
+  }, [gameAudio, gameStore]);
 
   const togglePause = useCallback(() => {
     if (gameStore.isGamePaused) {
@@ -487,6 +480,12 @@ const KanaGame = () => {
           setSpeedSetting={gameStore.setSpeedSetting}
           speechEnabled={speechEnabled}
           setSpeechEnabled={setSpeechEnabled}
+          apiKey={apiKey}
+          setApiKey={setApiKey}
+          availableVoices={availableVoices}
+          selectedVoice={selectedVoice}
+          setSelectedVoice={setSelectedVoice}
+          speakSample={speakSample}
           onClose={toggleSettings}
         />
       )}

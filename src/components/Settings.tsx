@@ -1,6 +1,9 @@
 import { HIRAGANA_SETS } from '../kana/hiragana';
 import { CharacterSet, getKanaSets } from '../kana/kana';
+import { VoiceOption } from '../effects/SpeechSynthesis';
 import Gojuuon from './Gojuuon';
+import { useState } from 'react';
+import { Eye, EyeOff, ExternalLink } from 'lucide-react';
 
 const Settings = ({
   level,
@@ -13,6 +16,12 @@ const Settings = ({
   setSpeedSetting,
   speechEnabled,
   setSpeechEnabled,
+  apiKey,
+  setApiKey,
+  availableVoices,
+  selectedVoice,
+  setSelectedVoice,
+  speakSample,
   onClose
 }: {
   level: number;
@@ -25,8 +34,16 @@ const Settings = ({
   setSpeedSetting: (speed: 'slow' | 'normal' | 'fast') => void;
   speechEnabled: boolean;
   setSpeechEnabled: (enabled: boolean) => void;
+  apiKey: string;
+  setApiKey: (key: string) => void;
+  availableVoices: VoiceOption[];
+  selectedVoice: string;
+  setSelectedVoice: (voice: string) => void;
+  speakSample: (voiceId: string) => void;
   onClose: () => void;
 }) => {
+  const [showApiKey, setShowApiKey] = useState(false);
+  
   const getCharacterStatus = (romaji: string) => {
     const currentKana = getKanaSets(level, writingSystem).find(k => k.romaji === romaji);
     const previousKana = getKanaSets(level - 1, writingSystem).find(k => k.romaji === romaji);
@@ -101,7 +118,6 @@ const Settings = ({
                   onChange={(e) => {
                     const enabled = e.target.value === 'enabled';
                     setSpeechEnabled(enabled);
-                    localStorage.setItem('kanaGameSpeech', enabled.toString());
                   }}
                   className="p-2 border rounded flex-grow"
                 >
@@ -111,6 +127,163 @@ const Settings = ({
               </div>
             </div>
           </div>
+          
+          {/* Voice Options */}
+          {speechEnabled && (
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-medium mb-3">Voice Settings</h3>
+              
+              {/* Voice selector */}
+              <div className="flex items-center space-x-4 mb-3">
+                <label className="min-w-24">Voice:</label>
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => {
+                    const newVoice = e.target.value;
+                    setSelectedVoice(newVoice);
+                    if (newVoice) {
+                      speakSample(newVoice);
+                    }
+                  }}
+                  className="p-2 border rounded flex-grow"
+                  disabled={availableVoices.length === 0}
+                >
+                  {availableVoices.length === 0 ? (
+                    <option value="">No voices available</option>
+                  ) : (
+                    <>
+                      {apiKey && (
+                        <>
+                          <optgroup label="ElevenLabs Voices that support Japanese">
+                            {(() => {
+                              const japaneseVoices = availableVoices
+                                .filter(voice => voice.supportsJapanese && voice.provider === "elevenlabs");
+                              
+                              if (japaneseVoices.length === 0) {
+                                return (
+                                  <option disabled value="">
+                                    No Japanese ElevenLabs voices available
+                                  </option>
+                                );
+                              }
+                              
+                              return japaneseVoices.map((voice) => (
+                                <option key={voice.id} value={voice.id}>
+                                  {voice.name || "Unnamed Voice"}
+                                </option>
+                              ));
+                            })()}
+                          </optgroup>
+                          
+                          <optgroup label="Other ElevenLabs Voices">
+                            {(() => {
+                              const otherVoices = availableVoices
+                                .filter(voice => !voice.supportsJapanese && voice.provider === "elevenlabs");
+                              
+                              if (otherVoices.length === 0) {
+                                return (
+                                  <option disabled value="">
+                                    No other ElevenLabs voices available
+                                  </option>
+                                );
+                              }
+                              
+                              return otherVoices.map((voice) => (
+                                <option key={voice.id} value={voice.id}>
+                                  {voice.name || "Unnamed Voice"}
+                                </option>
+                              ));
+                            })()}
+                          </optgroup>
+                        </>
+                      )}
+                      
+                      <optgroup label="Browser Voices that support Japanese">
+                        {(() => {
+                          const japaneseVoices = availableVoices
+                            .filter(voice => voice.supportsJapanese && voice.provider === "browser");
+                          
+                          if (japaneseVoices.length === 0) {
+                            return (
+                              <option disabled value="">
+                                No Japanese browser voices available
+                              </option>
+                            );
+                          }
+                          
+                          return japaneseVoices.map((voice) => (
+                            <option key={voice.id} value={voice.id}>
+                              {voice.name || "Unnamed Voice"}
+                            </option>
+                          ));
+                        })()}
+                      </optgroup>
+                      
+                      <optgroup label="Other Browser Voices">
+                        {(() => {
+                          const otherVoices = availableVoices
+                            .filter(voice => !voice.supportsJapanese && voice.provider === "browser");
+                          
+                          if (otherVoices.length === 0) {
+                            return (
+                              <option disabled value="">
+                                No other browser voices available
+                              </option>
+                            );
+                          }
+                          
+                          return otherVoices.map((voice) => (
+                            <option key={voice.id} value={voice.id}>
+                              {voice.name || "Unnamed Voice"}
+                            </option>
+                          ));
+                        })()}
+                      </optgroup>
+                    </>
+                  )}
+                </select>
+              </div>
+              
+              {/* ElevenLabs API Key */}
+              <div className="mt-4">
+                <div className="flex items-start mb-2">
+                  <label className="min-w-24 mt-2">ElevenLabs API Key:</label>
+                  <div className="flex-grow space-y-2">
+                    <div className="flex items-center">
+                      <input
+                        type={showApiKey ? "text" : "password"}
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder="Enter your ElevenLabs API key"
+                        className="p-2 border rounded flex-grow"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        className="ml-2 p-2 text-gray-500 hover:text-gray-700"
+                        aria-label={showApiKey ? "Hide API key" : "Show API key"}
+                      >
+                        {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <a
+                        href="https://elevenlabs.io/speech-synthesis"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-blue-500 hover:text-blue-700"
+                      >
+                        Get an ElevenLabs API key <ExternalLink size={14} className="ml-1" />
+                      </a>
+                      <p className="mt-1">
+                        Adding an API key enables high-quality Japanese voice synthesis.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Character count summary */}
           <div className="border-t pt-4">
